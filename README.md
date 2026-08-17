@@ -1,4 +1,4 @@
-# @dsh-external/dsh-odette-skin
+# dsh-odette-skin
 
 Odette 冰雪梦幻主题 —— DSH 客户端的深/浅双模式 UI 美化皮肤。
 
@@ -18,7 +18,15 @@ Odette 冰雪梦幻主题 —— DSH 客户端的深/浅双模式 UI 美化皮�
 
 ## 安装
 
-### 方式一：注入器（推荐，dsh-super-injector 环境）
+### 快速开始（npm registry，推荐）
+
+```bash
+dsh plugin --profile <name> add dsh-odette-skin
+```
+
+已发布到 npm，包含预构建产物（`lib/` + `assets/` + `cordis.patch.yml`），无需构建授权。
+
+### 方式一：注入器（本地开发，dsh-super-injector 环境）
 
 ```bash
 dev_install_package C:\path\to\odette-skin      # 热装配到当前 profile
@@ -34,8 +42,8 @@ dev_inject_plugin C:\path\to\odette-skin
 ```jsonc
 // <profile>/package.json
 {
-  "dependencies": { "@dsh-external/dsh-odette-skin": "link:<本目录绝对路径>" },
-  "bundles": ["@dsh-external/dsh-odette-skin"]
+  "dependencies": { "dsh-odette-skin": "link:<本目录绝对路径>" },
+  "bundles": ["dsh-odette-skin"]
 }
 ```
 
@@ -68,7 +76,7 @@ git 安装拉取的是源码，安装时由 `prepare` 脚本自动构建（自�
 
 ```yaml
 allowBuilds:
-  '@dsh-external/dsh-odette-skin': true
+  'dsh-odette-skin': true
 ```
 
 然后重新执行 `add`。若不想授权构建，改用方式三的 tarball 安装（无需任何构建授权）。
