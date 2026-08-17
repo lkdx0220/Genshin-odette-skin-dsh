@@ -125,6 +125,12 @@ cordis.patch.yml      # bundle 层插件行
 > 图片链接锁定 commit SHA（`ad9f0a5`），避免 raw CDN 对 `main` 分支路径的缓存返回旧图；
 > 以后更新图片后，把链接中的 SHA 替换为最新 commit 即可。
 
+## 免责声明 / Disclaimer
+
+本项目为粉丝同人作品，与米哈游、HoYoverse、DeepSeek 无任何关联，也未获得官方授权。仅用于技术学习与个人使用。如侵权请联系我删除。
+
+This project is a fan-made work. It is not affiliated with or endorsed by miHoYo, HoYoverse, or DeepSeek, and has not received any official authorization. It is intended for technical learning and personal use only. If any content infringes on your rights, please contact me and it will be removed.
+
 ## License
 
 BSD-3-Clause（代码）；配图版权归原作者所有。
