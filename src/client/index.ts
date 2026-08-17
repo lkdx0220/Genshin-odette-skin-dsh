@@ -44,7 +44,7 @@ export const inject = ['theme', 'slots']
 const SOURCE = '@dsh-external/dsh-odette-skin'
 const ASSET_BASE = location.origin + '/odette-skin'
 /** 图片资源版本号：每次更换/处理图片时递增，绕过客户端/浏览器 HTTP 缓存（v0.1 时代 max-age=86400 的缓存坑） */
-const IMG_REV = '?v=3'
+const IMG_REV = '?v=4'
 const SKIN_KEY = 'dsh-odette-skin:enabled'
 
 /* ============================ 主题色板 ============================ */
