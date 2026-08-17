@@ -21,7 +21,9 @@ Odette 冰雪梦幻主题 —— DSH 客户端的深/浅双模式 UI 美化皮�
 ### 快速开始（npm registry，推荐）
 
 ```bash
+# <name> 替换为你的 profile 名（如 web / demo）；未安装 dsh CLI 时用 npx @deepseek-ai/dsh 前缀
 dsh plugin --profile <name> add dsh-odette-skin
+# 例：npx @deepseek-ai/dsh plugin --profile web add dsh-odette-skin
 ```
 
 已发布到 npm，包含预构建产物（`lib/` + `assets/` + `cordis.patch.yml`），无需构建授权。
