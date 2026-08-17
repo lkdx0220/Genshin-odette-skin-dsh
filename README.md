@@ -49,6 +49,14 @@ dev_inject_plugin C:\path\to\odette-skin
 
 4. `node_modules` 建 junction 链接后重启客户端。
 
+### 方式三：tarball 安装（推荐分发，无需构建授权）
+
+```bash
+dsh plugin --profile <name> add ./dsh-external-dsh-odette-skin-0.0.1.tgz
+```
+
+构建产物已打包（`lib/` + `assets/` + `cordis.patch.yml`），安装即用。
+
 ## 构建
 
 自包含构建（无需 DSH_CHECKOUT / bash，跨平台）：
