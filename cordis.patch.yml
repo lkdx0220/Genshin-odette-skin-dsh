@@ -1,0 +1,4 @@
+# dsh-odette-skin bundle 层：插入皮肤插件行
+- insert:
+    - id: odette-skin
+      name: '@dsh-external/dsh-odette-skin'

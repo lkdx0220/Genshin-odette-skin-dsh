@@ -1,0 +1,52 @@
+{
+    "name":  "@dsh-external/dsh-odette-skin",
+    "version":  "0.0.1",
+    "description":  "Odette 冰雪梦幻主题：深/浅双模式 UI 美化皮肤（背景图 + 主题 token + 毛玻璃）",
+    "private":  true,
+    "type":  "module",
+    "main":  "./lib/index.js",
+    "types":  "./lib/types/index.d.ts",
+    "files":  [
+                  "lib",
+                  "assets"
+              ],
+    "license":  "BSD-3-Clause",
+    "peerDependencies":  {
+                             "@deepseek-ai/dsh-client-ui-slots":  "\u003e=0.0.1-rc \u003c2",
+                             "cordis":  "\u003e=4.0.0-rc \u003c5"
+                         },
+    "devDependencies":  {
+                            "@rolldown/binding-win32-x64-msvc":  "^1.2.4",
+                            "@types/node":  "^24.13.3",
+                            "tsdown":  "^0.22.14",
+                            "typescript":  "^5.9.0"
+                        },
+    "scripts":  {
+                    "build":  "node scripts/build.cjs",
+                    "prepare":  "npm run build",
+                    "typecheck":  "tsc -p tsconfig.json --noEmit",
+                    "build:client":  "tsdown"
+                },
+    "exports":  {
+                    ".":  {
+                              "types":  "./lib/types/index.d.ts",
+                              "default":  "./lib/index.js"
+                          },
+                    "./client":  {
+                                     "default":  "./lib/client.js"
+                                 },
+                    "./package.json":  "./package.json"
+                },
+    "dsh":  {
+                "client":  {
+                               "inject":  [
+                                              "@deepseek-ai/dsh-client-runtime",
+                                              "@deepseek-ai/dsh-client-ui-slots"
+                                          ],
+                               "platform":  "web"
+                           },
+                "bundle":  {
+                               "patch":  "./cordis.patch.yml"
+                           }
+            }
+}
