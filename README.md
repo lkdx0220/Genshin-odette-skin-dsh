@@ -57,6 +57,22 @@ dsh plugin --profile <name> add ./dsh-external-dsh-odette-skin-0.0.1.tgz
 
 构建产物已打包（`lib/` + `assets/` + `cordis.patch.yml`），安装即用。
 
+### 方式四：从 GitHub 直接安装（源码 + prepare 自动构建）
+
+```bash
+dsh plugin --profile <name> add github:lkdx0220/Genshin-odette-skin-dsh
+```
+
+git 安装拉取的是源码，安装时由 `prepare` 脚本自动构建（自包含，无需 DSH_CHECKOUT）。
+⚠️ pnpm ≥10 首次安装会被安全策略拦截——将以下内容加入该 profile 的 `pnpm-workspace.yaml` 授权构建：
+
+```yaml
+allowBuilds:
+  '@dsh-external/dsh-odette-skin': true
+```
+
+然后重新执行 `add`。若不想授权构建，改用方式三的 tarball 安装（无需任何构建授权）。
+
 ## 构建
 
 自包含构建（无需 DSH_CHECKOUT / bash，跨平台）：
