@@ -10,7 +10,7 @@ Odette 冰雪梦幻主题 —— DSH 客户端的深/浅双模式 UI 美化皮�
 
 ## 功能
 
-- **深/浅双模式**：自动跟随客户端主题切换（深色=芭蕾舞台冷调图，浅色=冰雪少女图）
+- **深/浅双模式**：自动跟随客户端主题切换（深色=蓝白梦幻双人图，浅色=Vader 浅蓝白角色图）
 - **主题 token 覆盖**：背景、层级、边框、品牌色、文字、状态色的蓝紫冰雪调
 - **毛玻璃质感**：半透明面板 + body 背景图透出（`body::before` 伪元素层 + CSS filter 增强浅色对比度）
 - **皮肤开关**：左下角浮层小兽（窄栏）或侧栏 footer ❄ 按钮（宽栏），点击即开关；皮肤关闭时入口以灰度+呼吸动画常驻，不会锁死
@@ -52,7 +52,7 @@ dev_inject_plugin C:\path\to\odette-skin
 ```yaml
 - insert:
     - id: odette-skin
-      name: '@dsh-external/dsh-odette-skin'
+      name: 'dsh-odette-skin'
 ```
 
 4. `node_modules` 建 junction 链接后重启客户端。
@@ -60,10 +60,11 @@ dev_inject_plugin C:\path\to\odette-skin
 ### 方式三：tarball 安装（推荐分发，无需构建授权）
 
 ```bash
-dsh plugin --profile <name> add ./dsh-external-dsh-odette-skin-0.0.1.tgz
+dsh plugin --profile <name> add ./dsh-odette-skin-0.0.1.tgz
 ```
 
 构建产物已打包（`lib/` + `assets/` + `cordis.patch.yml`），安装即用。
+（也可以直接从 GitHub Release 下载附件：`https://github.com/lkdx0220/Genshin-odette-skin-dsh/releases`）
 
 ### 方式四：从 GitHub 直接安装（源码 + prepare 自动构建）
 
