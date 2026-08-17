@@ -43,6 +43,8 @@ export const inject = ['theme', 'slots']
 
 const SOURCE = '@dsh-external/dsh-odette-skin'
 const ASSET_BASE = location.origin + '/odette-skin'
+/** 图片资源版本号：每次更换图片时递增，绕过客户端/浏览器 HTTP 缓存（v0.1 时代 max-age=86400 的缓存坑） */
+const IMG_REV = '?v=2'
 const SKIN_KEY = 'dsh-odette-skin:enabled'
 
 /* ============================ 主题色板 ============================ */
@@ -127,7 +129,7 @@ function applyBackground(scheme: 'light' | 'dark'): void {
     ? 'contrast(1.24) saturate(1.42)'
     : 'contrast(1.06) saturate(1.12)'
   const css = 'body::before{content:"";position:fixed;inset:0;z-index:-1;'
-    + 'background:url("' + ASSET_BASE + '/' + img + '") center/cover no-repeat;'
+    + 'background:url("' + ASSET_BASE + '/' + img + IMG_REV + '") center/cover no-repeat;'
     + 'filter:' + filter + ';}'
   if (bgStyleEl) bgStyleEl.remove()
   bgStyleEl = injectStyle('odette-skin:bg', css)
@@ -313,7 +315,7 @@ function SidebarDeco(props: any): any {
   return h('img', {
     className: 'odette-deco odette-deco-wide',
     'data-on': on ? '1' : '0',
-    src: ASSET_BASE + '/deco-sidebar.jpg',
+    src: ASSET_BASE + '/deco-sidebar.jpg' + IMG_REV,
     alt: '',
     draggable: false,
     title: on ? 'Odette 皮肤：开（点击关闭）' : 'Odette 皮肤：关（点击开启）',
@@ -362,7 +364,7 @@ function ShellDeco(): any {
     h('img', {
       className: 'odette-overlay-deco',
       'data-on': on ? '1' : '0',
-      src: ASSET_BASE + '/deco-sidebar.jpg',
+      src: ASSET_BASE + '/deco-sidebar.jpg' + IMG_REV,
       alt: '',
       draggable: false,
       title: on ? 'Odette 皮肤：开（点击关闭）' : 'Odette 皮肤：关（点击开启）',
