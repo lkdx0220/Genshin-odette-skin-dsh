@@ -2,6 +2,9 @@
 
 Odette 冰雪梦幻主题 —— DSH 客户端的深/浅双模式 UI 美化皮肤。
 
+> 仓库：https://github.com/lkdx0220/Genshin-odette-skin-dsh
+> 主题：Genshin / Odette 同人
+
 背景图 + 13 个官方主题 token 覆盖（半透明毛玻璃）+ 侧栏 Q 版小兽点缀，
 内置皮肤开关（侧栏浮层小兽 / footer ❄ 按钮），离线本地资源，重启保留。
 
