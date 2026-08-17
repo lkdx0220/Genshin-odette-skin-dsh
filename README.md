@@ -84,7 +84,7 @@ cordis.patch.yml      # bundle 层插件行
 | 用途 | 作者 | 图 |
 |---|---|---|
 | 浅色背景 | **pixiv：Vader** · 画师 ID `86110838` · 作品 PID `147886966` | ![浅色背景](assets/bg-light.jpg) |
-| 深色背景 | （来源待补充） | ![深色背景](assets/bg-dark.jpg) |
+| 深色背景 | 游戏内截图（无版权问题） | ![深色背景](assets/bg-dark.jpg) |
 | 侧栏小兽 | **B站 up 主：甘乐能** | ![侧栏小兽](assets/deco-sidebar.jpg) |
 
 ## License
