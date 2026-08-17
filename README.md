@@ -118,9 +118,12 @@ cordis.patch.yml      # bundle 层插件行
 
 | 用途 | 作者 | 图 |
 |---|---|---|
-| 浅色背景 | **pixiv：Vader** · 画师 ID `86110838` · 作品 PID `147886966` | ![浅色背景](https://raw.githubusercontent.com/lkdx0220/Genshin-odette-skin-dsh/main/assets/bg-light.jpg?v=4) |
-| 深色背景 | 游戏内截图（无版权问题） | ![深色背景](https://raw.githubusercontent.com/lkdx0220/Genshin-odette-skin-dsh/main/assets/bg-dark.jpg?v=4) |
-| 侧栏小兽 | **B站 up 主：甘乐能** | ![侧栏小兽](https://raw.githubusercontent.com/lkdx0220/Genshin-odette-skin-dsh/main/assets/deco-sidebar.jpg?v=4) |
+| 浅色背景 | **pixiv：Vader** · 画师 ID `86110838` · 作品 PID `147886966` | ![浅色背景](https://raw.githubusercontent.com/lkdx0220/Genshin-odette-skin-dsh/ad9f0a56d7f0292708e505935ff51f54f37d16bb/assets/bg-light.jpg) |
+| 深色背景 | 游戏内截图（无版权问题） | ![深色背景](https://raw.githubusercontent.com/lkdx0220/Genshin-odette-skin-dsh/ad9f0a56d7f0292708e505935ff51f54f37d16bb/assets/bg-dark.jpg) |
+| 侧栏小兽 | **B站 up 主：甘乐能** | ![侧栏小兽](https://raw.githubusercontent.com/lkdx0220/Genshin-odette-skin-dsh/ad9f0a56d7f0292708e505935ff51f54f37d16bb/assets/deco-sidebar.jpg) |
+
+> 图片链接锁定 commit SHA（`ad9f0a5`），避免 raw CDN 对 `main` 分支路径的缓存返回旧图；
+> 以后更新图片后，把链接中的 SHA 替换为最新 commit 即可。
 
 ## License
 
