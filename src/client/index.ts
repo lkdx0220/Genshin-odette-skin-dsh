@@ -43,8 +43,8 @@ export const inject = ['theme', 'slots']
 
 const SOURCE = '@dsh-external/dsh-odette-skin'
 const ASSET_BASE = location.origin + '/odette-skin'
-/** 图片资源版本号：每次更换图片时递增，绕过客户端/浏览器 HTTP 缓存（v0.1 时代 max-age=86400 的缓存坑） */
-const IMG_REV = '?v=2'
+/** 图片资源版本号：每次更换/处理图片时递增，绕过客户端/浏览器 HTTP 缓存（v0.1 时代 max-age=86400 的缓存坑） */
+const IMG_REV = '?v=3'
 const SKIN_KEY = 'dsh-odette-skin:enabled'
 
 /* ============================ 主题色板 ============================ */
@@ -124,13 +124,9 @@ function syncSkin(): void {
 
 function applyBackground(scheme: 'light' | 'dark'): void {
   const img = scheme === 'light' ? 'bg-light.jpg' : 'bg-dark.jpg'
-  // 浅色底图偏淡：伪元素层 + CSS filter 提对比/饱和，让背景在浅色 UI 下也能看清
-  const filter = scheme === 'light'
-    ? 'contrast(1.24) saturate(1.42)'
-    : 'contrast(1.06) saturate(1.12)'
+  // 增强已烘焙进图片文件本身（饱和+对比），无需 CSS filter——README 预览与皮肤显示完全一致，不再有色差
   const css = 'body::before{content:"";position:fixed;inset:0;z-index:-1;'
-    + 'background:url("' + ASSET_BASE + '/' + img + IMG_REV + '") center/cover no-repeat;'
-    + 'filter:' + filter + ';}'
+    + 'background:url("' + ASSET_BASE + '/' + img + IMG_REV + '") center/cover no-repeat;}'
   if (bgStyleEl) bgStyleEl.remove()
   bgStyleEl = injectStyle('odette-skin:bg', css)
 }
