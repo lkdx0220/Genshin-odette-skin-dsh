@@ -1,5 +1,7 @@
 # dsh-odette-skin
 
+[![Awesome DSH Plugin](https://beancookie.github.io/awesome-dsh-plugin/badge.svg)](https://beancookie.github.io/awesome-dsh-plugin)
+
 Odette 冰雪梦幻主题 —— DSH 客户端的深/浅双模式 UI 美化皮肤。
 
 > 仓库：https://github.com/lkdx0220/Genshin-odette-skin-dsh
