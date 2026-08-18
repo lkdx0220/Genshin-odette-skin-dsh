@@ -236,15 +236,21 @@ const CHROME_CSS = `
 }
 .odette-float-btn[data-on="0"] { opacity: .85; }
 
-/* Odette skin — 浮层小兽（开关入口；开=彩色发光、关=灰度呼吸） */
+/* Odette skin — 浮层小兽（开关入口；开=彩色发光、关=灰度呼吸）
+   宽态（全屏/展开侧栏）：80px 大图更醒目；窄栏（rail）：回落到 36px */
 .odette-overlay-deco {
   display: block;
-  width: 36px; height: 36px;
-  border-radius: 10px;
+  width: 80px; height: 80px;
+  border-radius: 16px;
   object-fit: cover;
   cursor: pointer;
   box-shadow: 0 3px 12px rgba(12, 18, 64, 0.35);
   transition: filter .15s ease, opacity .15s ease, transform .12s ease, box-shadow .15s ease;
+}
+.odette-float[data-rail="1"] .odette-overlay-deco,
+[data-sidebar-collapsed] .odette-overlay-deco {
+  width: 36px; height: 36px;
+  border-radius: 10px;
 }
 .odette-overlay-deco:hover { transform: scale(1.1); }
 .odette-overlay-deco[data-on="0"] { filter: grayscale(.72); animation: odette-breathe 2.4s ease-in-out infinite; }
