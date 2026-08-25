@@ -1,0 +1,19 @@
+{
+  "scheme": "A_v5_ROLLBACK_USER_ORIG",
+  "scheme_desc": "【回退态】用户原始手动抠图PNG（横杠贯通+天鹅完整，未挖槽）+ 旧BAK对齐基线（用户熟悉的位置）。先确认画面正常，再讨论挖槽策略。",
+  "swan_s": 0.092236328125,
+  "swan_bg_size_w": 188.9,
+  "swan_bg_size_h": 70.838,
+  "swan_bar_top_from_bot_render": 52.298,
+  "swan_bar_mid_from_bot_render": 38.232,
+  "swan_bar_bot_from_bot_render": 24.166,
+  "swan_bar_thk_render": 28.132,
+  "frame_thk_render_ref": 46.4,
+  "src": {
+    "W": 2048,
+    "H": 768,
+    "bandTop": 201,
+    "bandBot": 506,
+    "bandMid": 353.5
+  }
+}

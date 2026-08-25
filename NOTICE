@@ -1,0 +1,59 @@
+dsh-odette-skin (Odette 冰雪梦幻主题)
+=====================================
+
+Third-party attribution notice (CC BY-NC-SA 4.0)
+
+This skin's artwork and style are derived from multiple sources.
+Per the Attribution and ShareAlike requirements of CC BY-NC-SA 4.0,
+every contributor is credited here:
+
+1. Artwork (images)
+   All backgrounds and decorations are official Genshin Impact assets
+   (in-game screenshots, character PV screenshots, official item artwork)
+   and the copyright belongs to miHoYo / HoYoverse; used only in this
+   non-commercial project per the project disclaimer (see README):
+   - bg-light.jpg / bg-dark.jpg / hero-dark.jpg / hero-light.jpg:
+     in-game scenes & character PV "柔雪的幻象" screenshots (HoYoverse).
+   - Composer decorations (swan crest / cheer sticks / nesting doll /
+     feather / posters, bundled as odette-trio.webp etc.): official
+     Genshin Impact artwork (HoYoverse).
+   Exceptions (NOT HoYoverse assets):
+   - logo*.webp (hero title logo): re-drawn by the project author with
+     DeepSeek brand elements (whale mark + tagline). Not affiliated with
+     or endorsed by DeepSeek; see project disclaimer.
+   - banner-top.png (top trim band): AI-generated image provided by the
+     project author; the author holds the resulting fan-art usage rights
+     for this non-commercial project.
+
+2. Style architecture (code & CSS)
+   - maid-atelier (dsh-deep-whale) by Small-tailqwq:
+     https://github.com/Small-tailqwq/dsh-deep-whale
+     The composer motion timing, input-mirror height sync, sidebar-width
+     projection and status-projection architecture are adapted from this
+     skin, licensed under CC BY-NC-SA 4.0. No artwork from maid-atelier
+     is copied.
+
+Usage terms: CC BY-NC-SA 4.0 - attribution chain above must be kept;
+non-commercial use only; derivatives must be shared under the same license.
+
+中文署名链：
+1. 素材（图片）
+   全部背景与装饰均为《原神》官方素材（游戏内截图、角色 PV 截图、官方素材图），
+   版权归米哈游 HoYoverse 所有；仅用于本项目非商业使用，见 README 免责声明：
+   - bg-light.jpg / bg-dark.jpg / hero-dark.jpg / hero-light.jpg：
+     游戏内场景与角色 PV「柔雪的幻象」截图（米哈游官方素材）
+   - 输入框装饰（天鹅顶饰 / 应援棒 / 套娃 / 羽毛 / 海报，含 odette-trio.webp 等）：
+     《原神》官方素材图（米哈游官方素材）
+   非米哈游例外：
+   - logo*.webp（hero 标题 logo）：作者以 DeepSeek 品牌元素（鲸鱼标志+标语）重绘，
+     与 DeepSeek 无任何关联，见项目免责声明
+   - banner-top.png（顶部饰带）：作者提供的 AI 生成图（GPT Image），作者拥有
+     本项目非商业使用所需的权利。
+2. 样式架构（代码与 CSS）
+   - maid-atelier（dsh-deep-whale），作者 Small-tailqwq：
+     https://github.com/Small-tailqwq/dsh-deep-whale
+     本皮肤的输入框相位动画节奏、input-mirror 高度同步、侧栏宽度投影与
+     状态投影架构改编自该皮肤（CC BY-NC-SA 4.0）。未复制其任何美术素材。
+
+使用条款：CC BY-NC-SA 4.0 —— 必须保留以上完整署名链；仅限非商业使用；
+衍生作品必须以相同方式共享（share-alike）。

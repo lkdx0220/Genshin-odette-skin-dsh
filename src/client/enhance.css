@@ -1,0 +1,1344 @@
+/* Odette skin — 增强样式（随皮肤开关由 body[data-odette-skin] 属性驱动显隐）
+   素材 URL 一律走 CSS 变量（client/index.ts 注入 data URI），本文件不硬编码资源地址 */
+
+/* 滚动条 */
+body[data-odette-skin] *::-webkit-scrollbar { width: 10px; height: 10px; }
+body[data-odette-skin] *::-webkit-scrollbar-thumb { background: rgba(155, 170, 255, 0.35); border-radius: 8px; border: 2px solid transparent; background-clip: padding-box; }
+body[data-odette-skin] *::-webkit-scrollbar-thumb:hover { background: rgba(155, 170, 255, 0.55); background-clip: padding-box; }
+body[data-odette-skin] *::-webkit-scrollbar-track { background: transparent; }
+body[data-odette-skin] *::-webkit-scrollbar-corner { background: transparent; }
+
+/* 文字选中 */
+body[data-odette-skin] ::selection { background: rgba(125, 150, 255, 0.35); }
+
+/* 对话背景（双图制）：素材变量由 client/index.ts 按亮/暗主题写入（data URI 内嵌），
+   · ::before = hero 层（新会话页）：奥黛塔沙发场景（hero-*），默认可见
+   · ::after  = workspace 层（会话中）：原有对话背景（bg-*），hero 态隐藏
+   由 body[data-odette-workspace] 切换两层 opacity（520ms 同饰边曲线，柔和淡入淡出）。
+   两层均 position:fixed inset:0 z-index:-1/-2 → 覆盖整屏但不占正常流，不影响 flex/sticky。 */
+body[data-odette-skin]::before {
+  content: "";
+  position: fixed; inset: 0; z-index: -1;
+  background: var(--odette-hero-art) center/cover no-repeat;
+  opacity: 1;
+  transition: opacity 520ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+body[data-odette-skin]::after {
+  content: "";
+  position: fixed; inset: 0; z-index: -2;
+  background: var(--odette-bg-art) center/cover no-repeat;
+  opacity: 0;
+  transition: opacity 520ms cubic-bezier(0.4, 0, 0.2, 1);
+  pointer-events: none;
+}
+body[data-odette-skin][data-odette-workspace]::before { opacity: 0; }
+body[data-odette-skin][data-odette-workspace]::after { opacity: 1; }
+
+/* 顶部饰边（参考 deep-whale 双层机制）：
+   容器 fixed 全宽 + translate 侧栏宽度 → 只覆盖中间主区，不侵入侧栏；
+   z-index 20 沉于功能性 UI（header 提升 21）之下；pointer-events 全穿透；
+   两个独立平移层：landing（花边）↔ workspace（冰蓝布料）由 body[data-odette-workspace] 切换，
+   520ms 缓动滑入/滑出。 */
+body[data-odette-skin] .odette-trim {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: auto;
+  left: 0;
+  height: 76px;
+  z-index: 20;
+  overflow: hidden;
+  pointer-events: none;
+  contain: paint;
+  translate: var(--odette-sidebar-width, 0px) 0;
+}
+body[data-odette-skin] .odette-trim-layer {
+  position: absolute;
+  inset: 0;
+  transition-property: transform;
+  transition-duration: 520ms;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+}
+body[data-odette-skin] .odette-trim-layer[data-trim="landing"] {
+  /* TileA冰蓝窗幔帷幔 · 64px高版（1.33×放大，用户选定_2026/8/21） */
+  height: 64px;
+  background: var(--odette-trim-lace-art) left top / auto 100% repeat-x;
+  opacity: .7;
+  /* 高度从48→64，mask渐隐起始点从30%→45%（让帷幔褶裥最饱满的45%完整显示，下半段渐隐消融） */
+  mask-image: linear-gradient(to bottom, rgba(0,0,0,1) 45%, rgba(0,0,0,0) 100%);
+  -webkit-mask-image: linear-gradient(to bottom, rgba(0,0,0,1) 45%, rgba(0,0,0,0) 100%);
+  transform: translateY(0);
+}
+/* 会话态边框 = 纯 CSS 原神风冰蓝线条（无需素材）：
+   顶部 2.5px 冰蓝亮主线（不透明）+ 14px 辉光渐隐；底部 1.5px 冰蓝淡细线 */
+body[data-odette-skin] .odette-trim-layer[data-trim="workspace"] {
+  height: 76px;
+  background:
+    linear-gradient(to bottom, rgba(207, 218, 232, 1), rgba(207, 218, 232, 1) 2.5px, rgba(207, 218, 232, 0.5) 2.5px, rgba(207, 218, 232, 0) 14px),
+    linear-gradient(to top, rgba(85, 137, 198, 0.65), rgba(85, 137, 198, 0.65) 1.5px, rgba(85, 137, 198, 0) 1.5px);
+  transform: translateY(-100%);
+}
+body[data-odette-skin][data-odette-workspace] .odette-trim-layer[data-trim="landing"] { transform: translateY(-100%); }
+body[data-odette-skin][data-odette-workspace] .odette-trim-layer[data-trim="workspace"] { transform: translateY(0); }
+/* 语义会话标签栏提升到饰边层（z-20）之上：冰蓝边/布料沉在 UI 下方，控件始终可见可点 */
+body[data-odette-skin] header:has([role='tablist']) { position: relative; z-index: 21; }
+
+/* 【顶部会话 UI 滑入动画】blank 态（新会话）时 header 为 display:none
+   （hideChrome = session.blank && composerPhase==='blank'，dsh-client-ui-conversation L6994-6996），
+   发出第一轮提示后 header 出现——display:none → flex 时 CSS animation 自动重新播放，
+   因此纯 CSS 即可实现"饰边收起的同时，顶部会话 UI 从屏幕上方滑入"。
+   参数与饰边双层切换一致（520ms cubic-bezier(0.4,0,0.2,1)）保持同步观感；
+   切换会话（header 持续可见）不会重播。 */
+body[data-odette-skin] .wSkVaW_header:not(.wSkVaW_headerHidden) {
+  animation: odette-header-slide 0.52s cubic-bezier(0.4, 0, 0.2, 1) both;
+}
+@keyframes odette-header-slide {
+  from { transform: translateY(-100%); }
+  to { transform: translateY(0); }
+}
+
+/* 【顶部会话 UI 滑出动画（收上去）】header 隐藏时 React 连 children 一起卸载
+   （dsh-client-ui-conversation L6998），display:none 瞬间 CSS 无法动画——因此由
+   client JS 在 header 可见期间持续缓存克隆体（refreshHeaderGhost），检测到会话
+   回空白态（body[data-odette-workspace] 移除，见 index.ts playHeaderSlideOut）时
+   用克隆体播放本动画（translateY(0)→-100%，与滑入/饰边同参数 520ms cubic-bezier(0.4,0,0.2,1)），
+   animationend 后克隆体移除。 */
+@keyframes odette-header-slide-out {
+  from { transform: translateY(0); }
+  to { transform: translateY(-100%); }
+}
+
+/* 【底部统计行（conversation.composer.dock：回合统计 + 本轮费用）滑入/滑出动画】
+   与顶部 header 对称：header 从上方滑入，统计行从**下方**滑入。
+   **全 JS 化**（吸取教训：滑入 CSS 用 CSS modules 哈希类名 FJxK0a_root 随构建变化不可靠；
+   滑出克隆体 fixed bottom:0 与原位置有 padding 间隙导致"平移跳变"）：
+   - 滑入：index.ts playFooterSlideIn() 对实时元素加内联 animation（节点插入/重插时
+     播放，700ms 后清除内联），不依赖 CSS 选择器命中
+   - 滑出：index.ts footerGhost 克隆缓存 + playFooterSlideOut()，克隆体定位由
+     refreshFooterGhost() 测量原元素实际 getBoundingClientRect 后内联设置
+     （left/top/width 对齐原位置，消除起点跳变） */
+@keyframes odette-footer-slide {
+  from { transform: translateY(220%); opacity: 0.4; }
+  to { transform: translateY(0); opacity: 1; }
+}
+@keyframes odette-footer-exit {
+  from { transform: translateY(0); opacity: 1; }
+  to { transform: translateY(220%); opacity: 0.4; }
+}
+/* 滑出/滑入克隆体容器：贴视口底（bottom:0，top:auto），水平由 JS 内联 left/width 绑定
+   输入框列（统计行的最终位置=内容区底部；不写入 top 是因为 footer 刚挂载时布局还在
+   hero↔active 切换中间态，此刻测量到的 rect 高度/位置是错的中部值）。
+   克隆体内容自身样式（margin auto / max-width）沿用 */
+.odette-footer-ghost {
+  position: fixed; left: 0; right: 0; bottom: 0; top: auto; z-index: 22;
+  display: flex; flex-direction: column; align-items: center;
+  pointer-events: none; visibility: hidden;
+}
+
+/* 统计行宽度放开：原生 .FJxK0a_root 有 max-width:var(--dsh-chat-content-width)（~748px）
+   + white-space:nowrap + text-overflow:ellipsis → 长统计文本（"输入 293M tok · 输出
+   1.6M tok" 尾部）被截断省略。而滑入/滑出克隆体挂在 body 下，脱离定义该变量的组件
+   scope → max-width 失效 → 完整显示 → 用户看到切换瞬间统计行"突然变长"（图2）。
+   实测完整文本需 738px > root 内容宽 658px（probe-footer10：stats csWidth 658 /
+   scrollWidth 738）——**一行物理放不下**，纯放开 max-width 仍截断 →
+   允许**折行**（white-space:normal + 无省略号）：内容完整、居中断行；
+   窄视口/更长文本自然多行，无溢出。（2026-08-25 曾改单行——用户回退要求：恢复折行） */
+body[data-odette-skin] [data-slot='conversation.composer.dock'] > div:first-child {
+  max-width: none !important;
+  white-space: normal !important;
+  text-overflow: clip !important;
+  overflow: visible !important;
+  padding-left: calc(var(--dsh-composer-side-clearance) + 16px) !important;
+  padding-right: calc(var(--dsh-composer-side-clearance) + 16px) !important;
+}
+
+/* 输入框美化 v5（参考 maid-atelier 的 9-slice 比例锁定法：细框线中线=卡片边缘，天鹅横杠中线=框线中线）
+   机制：
+   - 大佬四件套（同 v4）：box-sizing:border-box + inset 公式 + BW≡BIW + 原 slice 值
+   - 对齐基准修正（修复 v4 把框线下缘对齐卡顶导致"框被明显抬高"的 bug）：
+     细框线**中线**正好落在卡片四边缘（top=0/bottom=0/left=0/right=0），效果：
+     · 框线正好"坐"在红圈边上（半实色半外发光，辉光≈素材自带效果，视觉不突兀）
+     · 角饰/宝石/吊坠从框线向卡片内部延伸（全在红圈内，不超）
+     · 天鹅横杠中线正好 = 上框线中线 = 卡顶 y=0 → 完全重合，肉眼无缝
+     · 天鹅整体绝大部分在卡上方（y<0），不挡下方 dsh 运行统计行
+   - 精确 inset 公式：inset = - BW × (F_cent / slice_value)
+     F_cent = 扫图得到的细框线主峰中线距素材外缘像素：
+       上顶 y=30~49 → F_top=39.5；下底距底 60~82 → F_bottom=71；
+       左右 x=12~33 / 距右 13~32 → F_left=F_right=22.5
+     最终 inset（上右下左）：−7.39  −4.24  −13.73  −4.24
+   - 边框渲染厚度（加粗一倍）：T=29 / R=32 / B=29 / L=32 → 框线渲染厚 ≈ 3.7px
+   - 天鹅对齐：bgSize 188.9×115.1，容器 top=0 贴卡顶，bgPos 垂直贴底再向上 1.7px
+     （因天鹅横杠中线距天鹅底≈1.68px，正好对齐卡顶 y=0 的框线中线）
+*/
+/* 【D-step2·2026/8/21】逐个恢复：position:relative + isolation:isolate
+   padding-top:28px保留；::before/::after仍禁用。
+   预期：position:relative（无top/left）和isolation:isolate仅创建层叠上下文/含块，
+   不改变正常流盒模型高度，空挡应继续消失。 */
+body[data-odette-skin] [data-composer-card] {
+  isolation: isolate;
+  position: relative;
+  border-radius: 16px;
+  /* 背景默认浅色（与 maid 同架构：默认浅色，深色由 [data-ds-dark-theme] 条件覆盖）。
+     旧架构"默认深蓝 + :not 浅色覆盖"在浅色模式下任何环节失效都会深蓝卡片，
+     反转为"默认浅色 + 深色条件覆盖"后，属性/选择器异常时只会回落原生浅色，永不深蓝。 */
+  background: linear-gradient(180deg, rgba(250, 252, 255, 0.96), rgba(236, 241, 255, 0.96));
+  box-sizing: border-box;
+  padding-top: 28px;
+}
+/* 深色模式：条件覆盖为深蓝渐变（属性由 layout presenter 与皮肤 JS 校准共同维护） */
+body[data-odette-skin][data-ds-dark-theme] [data-composer-card] {
+  background: linear-gradient(180deg, rgba(16, 24, 58, 0.94), rgba(9, 14, 38, 0.96));
+}
+/* 工具栏行（按钮+textarea容器）——保留min-height:48和居中对齐，这俩不影响布局高度 */
+body[data-odette-skin] [data-composer-card] > [class*='row'] {
+  min-height: 48px;
+  align-items: center;
+}
+/* 【D-step3·2026/8/21】逐个恢复：9-slice蓝宝石边框::before + >*子元素z-index提升 + 高优::before覆盖
+   padding-top:28px / position:relative / isolation:isolate 已恢复；天鹅顶饰::after 仍禁用。
+   9-slice inset: -11.82/-6.78/-21.97/-6.78（负向溢出 视觉不占正常流），absolute+pointer-events:none，
+   通过position:relative挂到data-composer-card上。若这步触发空挡→根因为9-slice伪元素inset溢出参与了
+   Chromium display:contents + sticky 的幻象scrollHeight计算；若仍安全→D-step4 恢复天鹅顶饰。 */
+/* 【2026-08-25 方案A：多层宝石框】纯色线框 → 宝石切割切面感（用户："还是有点素"）。
+   层次（全 inset 盒内，绝不出界——框线画在卡片边缘内侧）：
+     外 2px 亮冰线 rgba(150,190,255,0.95)
+     → 内 3px 深蓝玻璃带 rgba(20,36,80,0.6)
+     → 1px 冰蓝细线 rgba(124,158,211,0.45)（4-5px 处）
+     → 内辉光 inset 12px
+     → 外柔光 0 0 5px 0.15（极淡，仅氛围不构成"出界"线）
+   总视觉厚度 ≈5px（与之前加粗版一致）；border-radius 12px。 */
+body[data-odette-skin] [data-composer-card]::before {
+  content: '';
+  position: absolute;
+  box-sizing: border-box;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  border: 3px solid rgba(150, 190, 255, 0.95);
+  border-radius: 12px;
+  box-shadow:
+    /* 【2026-08-25 内外之间填充】用户："内外边框之间填充颜色，介于外/内边框的蓝色"：
+       外边框=3px 亮冰蓝(150,190,255)；内边框=9px 处 1px 深蓝线；中间 3-8px 带
+       = 中间蓝 rgb(83,108,156) 纯色填充（介于 150,190,255 ↔ 17,26,58 的中值） */
+    inset 0 0 0 8px rgba(83, 108, 156, 1),
+    inset 0 0 0 9px rgba(17, 26, 58, 0.98),
+    inset 0 0 16px rgba(90, 130, 200, 0.3),
+    0 0 6px rgba(90, 130, 200, 0.15);
+}
+/* 【2026-08-25】浅色模式边框配色（用户："浅色模式边框颜色得改，不然很难看"）：
+   深色版是亮冰蓝+深蓝玻璃带（浅色页面上显重/脏）；浅色版 = 中冰蓝主边 + 白玻璃带 + 冰蓝细线，
+   与浅蓝白卡片/背景一体。加粗同深色（3px 边 + 5px 白带 + 8px 细线 + 14/16px 辉光）。 */
+body[data-odette-skin]:not([data-ds-dark-theme]) [data-composer-card]::before {
+  border: 3px solid rgba(125, 165, 220, 0.85);
+  box-shadow:
+    /* 【2026-08-25 内外之间填充·浅色 v3】用户截图"浅色模式需要把框的色号改淡些"——
+       v2 淡冰蓝(117,164,227)在浅色页面上仍偏深 → 全链减淡：
+       外边框 125,165,220(.85)；填充带 165,195,240(.92)；内1px线 185,210,250(.85)；
+       辉光同步减（22%→15% / 18%→12%）→ 冰蓝粉彩化，贴合浅蓝白卡片 */
+    inset 0 0 0 8px rgba(165, 195, 240, 0.92),
+    inset 0 0 0 9px rgba(185, 210, 250, 0.85),
+    inset 0 0 16px rgba(125, 165, 220, 0.15),
+    0 0 6px rgba(125, 165, 220, 0.12);
+}
+/* 【永久修复·2026/8/21】天鹅顶饰盒子高度：calc(100%+300px) → 固定 300px
+   根因（D-step4精准锁定）：data-composer-card 作为 position:relative 含块，挂 absolute
+   伪元素时，伪元素盒子高度越大，Chromium（DSH内核+多层display:contents+sticky组合）
+   的 scrollHeight 幻象溢出越严重 → composerSeat sticky:bottom 错贴 → 底部空挡。
+   高度数据验证：
+     · 9-slice ::before（盒高≈卡高+34 ≈ 134px） → 安全，空挡消失（D-step3）
+     · calc(100%+300) → 盒高≈ 380~430px → 触发空挡（D-step4复现）
+     · 固定 600px → 盒高 600px → 空挡更大到「能跑马」
+     · 固定 300px → 盒高 300px（上溢200+下溢100临界最小） → 空挡消失+吊坠完整 ✓
+   触发阈值在 300~380px 之间，300px 为安全最优值：
+   top:-200 到 bottom:+100 刚好覆盖天鹅主体（上200）+蓝宝石吊坠（卡底往下≈50+裕量50），
+   bg-position基于top:-200锚点常量计算，对齐零偏差；完全不使用 calc(100%+N) 父高百分比联动。 */
+/* 【2026-08-25 插槽式顶饰 v6】用户绿框："翅膀放大到图2绿框大小"（绿框宽=173px）+
+   上轮"翅膀挡断口"：翅膀 173px（内容 38.4px 骑线 [-19.2,+19.2]，吊坠垂 +19 <28），
+   涂块保持 90×22（裁切段短而翅膀大——两端各盖 ~41px 框线，框线到翼缘被挡消失）。
+   视觉断口 = 翼缘 173px = 用户绿框。中央缝（素材 166-193）渲染 ±9px 落涂区（±45）被涂。
+   maid 共存块同参数；⚠ 铁律：height:300px / top:-200px 结构不动。 */
+body[data-odette-skin] [data-composer-card]::after {
+  content: '';
+  position: absolute;
+  pointer-events: none;
+  z-index: 1;
+  top: -200px;
+  left: -40px;
+  right: -40px;
+  height: 300px;
+  background-image:
+    var(--odette-crest-white-art),
+    linear-gradient(rgba(16, 24, 58, 0.94), rgba(16, 24, 58, 0.94));
+  background-size: 173px auto, 90px 22px;
+  background-position: center 181px, center 200px;
+  background-repeat: no-repeat, no-repeat;
+}
+/* 浅色分支：掩盖块用浅色卡片顶色（深色主规则继承徽章层，只覆盖颜色） */
+body[data-odette-skin]:not([data-ds-dark-theme]) [data-composer-card]::after {
+  background-image:
+    var(--odette-crest-white-art),
+    linear-gradient(rgba(250, 252, 255, 0.96), rgba(250, 252, 255, 0.96));
+}
+/* 套娃+左右应援棒整体组合：2026-08-25 用户参考图（无标题.png 4154×2389）抠图透明后
+   作为单一素材使用——"不需要一直调整角度"。素材 odette-trio.webp 700×485（内容 bbox
+   裁齐，左扇面低斜40°/套娃中/右扇面高直立6° 全部在素材内定好）。
+   ★单元素承载：.odette-stick-deco = 88×61（等比 1.443，组合中心卡内x254：
+   left 210 → 卡内 x210-298）；bottom:0 贴地；
+   顶 y=135-61=卡内74 → 视口134：第2行输入文字(视口98-120)下方14px 间隙，
+   第3行(120-142)仅轻微相切（用户"有一点遮挡"→ 88×61 已是文字上界安全值）；
+   无 transform/无伪元素（铁律：height 61px < 300px 空挡阈值，绝对元素无 scrollHeight 幻象）。
+   combo（独立套娃）已含在整体内 → display:none。 */
+body[data-odette-skin] [data-composer-card] > .odette-stick-deco {
+  position: absolute !important;
+  left: 210px !important;
+  bottom: 0 !important;
+  width: 88px;
+  height: 61px;
+  background: var(--odette-trio-art) center / contain no-repeat;
+  pointer-events: none;
+  z-index: 3;
+}
+/* 羽毛：右上角，"压在页眉上的羽毛笔"（源素材长轴横向羽尖朝右，负角度羽尖抬向右上；
+   2026-08-25 用户反馈遮挡过大 → 110×115→76×80，位置微收敛；
+   2026-08-25 v2：用户"右上角的羽毛改成斜45°角" → rotate(-27deg)→rotate(-45deg)。
+   2026-08-25 v3：用户红圈"我说的是这条线（杆），斜45度"——像素实测杆显示角101°→rotate(-101deg)。
+   2026-08-25 v4：用户"方向错了，顺时针旋转90°就对了" → -101+90 = rotate(-11deg) */
+body[data-odette-skin] [data-composer-card] > .odette-feather-deco {
+  position: absolute !important;
+  right: -10px !important;
+  top: -34px !important;
+  width: 76px;
+  height: 80px;
+  background: var(--odette-feather-art) center / contain no-repeat;
+  transform: rotate(-11deg);
+  transform-origin: 50% 50%;
+  pointer-events: none;
+  z-index: 3;
+}
+/* 套娃：独立素材已被 odette-trio.webp 整体组合吸收（2026-08-25），隐藏避免重复 */
+body[data-odette-skin] [data-composer-card] > .odette-combo-deco {
+  display: none !important;
+}
+/* 恢复：控件提升到装饰层之上（9-slice z-index:0，控件 z-index:2，天鹅顶饰未来 z-index:1）
+   ⚠ 排除 overlayAnchor：conversation 原生定义为 position:absolute; inset:0 0 auto
+   （固定贴卡片顶部的零高锚点），一级命令菜单/二级 PopupSelect 弹层都用
+   bottom:calc(100%+Npx) 相对它向上弹出。若被改成 relative → 锚点掉回文档流，
+   弹层参考系错乱、整体漂移到视口外被裁（用户实测：面板"没显示完全"）。 */
+body[data-odette-skin] [data-composer-card] > *:not([class*='overlayAnchor']) {
+  position: relative;
+  z-index: 2;
+}
+/* 显式恢复 overlayAnchor 原生定位（防止其他规则再动它） */
+body[data-odette-skin] [data-composer-card] > [class*='overlayAnchor'] {
+  position: absolute !important;
+  inset: 0 0 auto !important;
+  height: 0 !important;
+  z-index: auto !important;
+}
+/* 高优覆盖：全恢复（maid-atelier 共存场景：双皮肤属性下 maid 若重置 ::before/::after，
+   本块把 odette 的纯色框 + 中央徽章顶饰抢回来；2026-08-25 同步单层徽章） */
+body[data-odette-skin][data-dsh-maid-atelier] [data-phase] [data-composer-card]::after {
+  background-color: transparent !important;
+  background-image:
+    var(--odette-crest-white-art),
+    linear-gradient(rgba(16, 24, 58, 0.94), rgba(16, 24, 58, 0.94)) !important;
+  background-size: 173px auto, 90px 22px !important;
+  background-position: center 181px, center 200px !important;
+  background-repeat: no-repeat, no-repeat !important;
+  border-radius: 0 !important;
+  z-index: 1 !important;
+}
+body[data-odette-skin][data-dsh-maid-atelier][data-ds-dark-theme] [data-phase] [data-composer-card]::before {
+  border: 3px solid rgba(150, 190, 255, 0.95) !important;
+  border-image: none !important;
+  border-radius: 12px !important;
+  box-shadow:
+    /* 【2026-08-25 内外之间填充】同步主规则（深色）：中间 3-8px 带中间蓝纯色 + 9px 处 1px 内边框 */
+    inset 0 0 0 8px rgba(83, 108, 156, 1),
+    inset 0 0 0 9px rgba(17, 26, 58, 0.98),
+    inset 0 0 16px rgba(90, 130, 200, 0.3),
+    0 0 6px rgba(90, 130, 200, 0.15) !important;
+}
+/* maid 共存·浅色（双皮肤只开 odette 表面干净时用不到；双开浅色时保持淡冰蓝填充分支） */
+body[data-odette-skin][data-dsh-maid-atelier]:not([data-ds-dark-theme]) [data-phase] [data-composer-card]::before {
+  border: 3px solid rgba(125, 165, 220, 0.85) !important;
+  border-image: none !important;
+  border-radius: 12px !important;
+  box-shadow:
+    inset 0 0 0 8px rgba(165, 195, 240, 0.92),
+    inset 0 0 0 9px rgba(185, 210, 250, 0.85),
+    inset 0 0 16px rgba(125, 165, 220, 0.15),
+    0 0 6px rgba(125, 165, 220, 0.12) !important;
+}
+/* 旧四角饰 img：本方案不再使用（9-slice 素材内置四角宝石），直接隐藏 */
+body[data-odette-skin] .odette-composer-decor,
+body[data-odette-skin] .odette-corner-tl,
+body[data-odette-skin] .odette-corner-tr,
+body[data-odette-skin] .odette-corner-bl,
+body[data-odette-skin] .odette-corner-br {
+  display: none !important;
+}
+/* 旧蝴蝶结（挂在 trim 层底缘）：替换为卡片顶中央天鹅，隐藏避免重复 */
+body[data-odette-skin] .odette-trim::after {
+  display: none;
+}
+/* 浅色主题适配：卡片底色转浅色，9-slice 素材本身是深/浅通用（边框色半透明），保持不变 */
+body[data-odette-skin]:not([data-ds-dark-theme]) [data-composer-card] {
+  background: linear-gradient(180deg, rgba(250, 252, 255, 0.96), rgba(236, 241, 255, 0.96));
+}
+body[data-odette-skin]:not([data-ds-dark-theme]) [data-composer-card] textarea,
+body[data-odette-skin]:not([data-ds-dark-theme]) [data-composer-card] [contenteditable='true'] {
+  color: #0f1535 !important;
+  caret-color: #0f1535;
+}
+body[data-odette-skin]:not([data-ds-dark-theme]) [data-composer-card] textarea::placeholder,
+body[data-odette-skin]:not([data-ds-dark-theme]) [data-composer-card] [contenteditable='true']::placeholder {
+  color: rgba(15, 21, 51, 0.45) !important;
+}
+body[data-odette-skin]:not([data-ds-dark-theme]) [data-composer-card] button {
+  color: #0f1535;
+}
+/* 浅色主题：三个圆钮（➕/权限/发送）转浅色玻璃——统一在下方「浅色圆钮」段处理
+   （v2.10 起不再"蓝晶钮保持"：浅色模式下深蓝渐变底太突兀，改浅蓝白渐变 + 深色图标） */
+/* 红框三按钮统一冰蓝边（参考大佬结构：冰蓝中蓝主描边 + 外层细辉光 + 内层冰蓝柔光 + 圆形）
+   · 主描边 #5589C6（角色头发冰蓝同色，主题统一不突兀）
+   · 背景保持深蓝径向渐变（保留原蓝晶钮气质），冰蓝边镶在最外层
+   · 三按钮选择器分述，见各段落 */
+
+/* ① 左下＋号（命令）圆形钮——蓝晶底 + 冰蓝边 */
+body[data-odette-skin] [data-composer-card] [aria-label='命令'],
+body[data-odette-skin] [data-composer-card] button.uV2eYG_add {
+  /* 强制正方形（参考大佬）：38×38 真圆形，border-radius 50% 不会变成椭圆/扁钮 */
+  box-sizing: border-box;
+  width: 38px;
+  min-width: 38px;
+  height: 38px;
+  padding: 0;
+  display: inline-grid;
+  place-items: center;
+  background: radial-gradient(circle at 35% 30%, rgba(87,137,198,0.82), rgba(30,53,104,0.98));
+  color: #fff !important;
+  /* 冰蓝双层：2px 冰蓝中蓝主描边 + 1px 冰蓝白辉光外缘 */
+  border: 2px solid #5589C6;
+  /* 冰蓝三层镶嵌结构（参考大佬）：外冰蓝辉光 + 内冰蓝柔光 + 深蓝空气隙（描边与底座的视觉缝）
+     box-shadow 顺序=上到下：外辉光(上层) → 内冰蓝柔光 → 深蓝空气隙(底层紧贴背景) → 外黑投影(最外层空间) */
+  box-shadow:
+    0 0 0 1px rgba(207, 218, 232, 0.32),
+    inset 0 0 5px rgba(85, 137, 198, 0.55),
+    inset 0 0 0 2px rgba(19, 33, 73, 0.92),
+    0 1px 5px rgba(0, 0, 0, 0.35);
+  border-radius: 50%;
+}
+body[data-odette-skin] [data-composer-card] [aria-label='命令'] svg,
+body[data-odette-skin] [data-composer-card] button.uV2eYG_add svg {
+  stroke: currentColor;
+}
+
+/* ② 左下权限盾牌圆形钮（Full access）——同款冰蓝边
+   · 当前 UI 实测：aria-haspopup=null 且 aria-label="访问模式，当前：Workspace Write"，
+     旧选择器 [aria-haspopup='menu'][aria-label*='访问'] 因 haspopup 为 null 全部失配
+     → 用 aria-label^='访问模式'（稳定）+ 精确类名双保险 */
+body[data-odette-skin] [data-composer-card] button[aria-label^='访问模式'],
+body[data-odette-skin] [data-composer-card] button.Sh0Q9G_trigger,
+body[data-odette-skin] [data-composer-card] button[aria-haspopup='menu'][aria-label*='访问'],
+body[data-odette-skin] [data-composer-card] button[aria-label*='权限'],
+body[data-odette-skin] [data-composer-card] button.odette-access-btn {
+  /* 强制正方形（参考大佬）：38×38 真圆形 */
+  box-sizing: border-box;
+  width: 38px;
+  min-width: 38px;
+  height: 38px;
+  padding: 0;
+  display: inline-grid;
+  place-items: center;
+  background: radial-gradient(circle at 35% 30%, rgba(87,137,198,0.82), rgba(30,53,104,0.98));
+  color: #CFDAE8 !important; /* 盾牌图标冰蓝白高光，与描边呼应 */
+  border: 2px solid #5589C6;
+  /* 冰蓝三层镶嵌结构（参考大佬）：外冰蓝辉光 + 内冰蓝柔光 + 深蓝空气隙（描边与底座的视觉缝）
+     box-shadow 顺序=上到下：外辉光(上层) → 内冰蓝柔光 → 深蓝空气隙(底层紧贴背景) → 外黑投影(最外层空间) */
+  box-shadow:
+    0 0 0 1px rgba(207, 218, 232, 0.32),
+    inset 0 0 5px rgba(85, 137, 198, 0.55),
+    inset 0 0 0 2px rgba(19, 33, 73, 0.92),
+    0 1px 5px rgba(0, 0, 0, 0.35);
+  border-radius: 50%;
+}
+
+/* 权限钮只留盾牌图标：隐藏内嵌英文标签（Sh0Q9G_triggerLabel，如 "Full access"/"Workspace Write"）
+   与下拉 chevron——原生是「盾牌+文本+chevron」横排文本钮，被本皮肤强制成 38px 圆形后
+   文本叠进圆内（用户反馈"英文得删掉"）。无障碍不丢：aria-label 仍带当前模式。 */
+body[data-odette-skin] [data-composer-card] button.Sh0Q9G_trigger :is(.Sh0Q9G_triggerLabel, .Sh0Q9G_chevron) {
+  display: none !important;
+}
+
+/* ②b 添加图片/文件钮（vision-router 插件 dsh-vision-attach-btn，28×28 原生深灰片）——
+   与 ➕/权限/发送同款蓝晶玻璃，保持原生 28px 小圆钮尺寸不放大 */
+body[data-odette-skin] [data-composer-card] button.dsh-vision-attach-btn {
+  background: radial-gradient(circle at 35% 30%, rgba(87, 137, 198, 0.82), rgba(30, 53, 104, 0.98)) !important;
+  border: 2px solid #5589C6 !important;
+  box-shadow:
+    0 0 0 1px rgba(207, 218, 232, 0.32),
+    inset 0 0 5px rgba(85, 137, 198, 0.55),
+    inset 0 0 0 2px rgba(19, 33, 73, 0.92),
+    0 1px 5px rgba(0, 0, 0, 0.35);
+  color: #CFDAE8 !important;
+}
+
+body[data-odette-skin]:not([data-ds-dark-theme]) [data-composer-card] button.dsh-vision-attach-btn {
+  background: radial-gradient(circle at 35% 30%, rgba(255, 255, 255, 0.95), rgba(214, 226, 255, 0.95)) !important;
+  border: 2px solid #5589C6 !important;
+  box-shadow:
+    0 0 0 1px rgba(207, 218, 232, 0.8),
+    inset 0 0 5px rgba(85, 137, 198, 0.25),
+    inset 0 0 0 2px rgba(255, 255, 255, 0.7),
+    0 1px 5px rgba(31, 49, 92, 0.18);
+  color: #16224e !important;
+}
+
+/* 工具钮群（➕/盾牌/图片）：**保持用户习惯位置**（translate(10px,-6px)——
+   2026-08-25 曾误判"transform 未生效"误改为 none（用户："你又乱动了这块"），已还原） */
+body[data-odette-skin] [data-composer-card] .uV2eYG_tools {
+  transform: translate(10px, -6px);
+}
+/* 发送钮 uV2eYG_primary：以 ➕ 钮为参照镜像对齐（2026-08-25 实测收敛）：
+   · ➕ 左距（外缘）= 15px——**原生值**（tools 的 transform 在真实渲染中从未生效，
+     历版截图 ➕ 恒 15px；tools 规则删除，不再写）
+   · 发送钮原生右距 = 9px（实测）；tx=-26 时右距 35px（用户："开跑马场"=太宽）
+   · 目标右距 15px = ➕ → tx = 15 - 9 = -6px（左移 6 → 两侧 15px 对称紧凑）
+   · 同高：Y = -6px（= ➕）；38px 同尺寸；上下文统计圈不干预。
+   ⚠ 真实类名 = uV2eYG_primary（bundle 实证 type=submit/aria-label=发送 均 0 处）。 */
+body[data-odette-skin] [data-composer-card] button[type='submit'],
+body[data-odette-skin] [data-composer-card] button[aria-label='发送'],
+body[data-odette-skin] [data-composer-card] button.odette-send-btn,
+body[data-odette-skin] [data-composer-card] button.uV2eYG_primary {
+  transform: translate(-6px, -6px);
+}
+
+/* ③ 右下发送↑圆形钮——同款冰蓝边（底色略亮蓝区分发送语义）；uV2eYG_primary 命中真实按钮 */
+body[data-odette-skin] [data-composer-card] button[type='submit'],
+body[data-odette-skin] [data-composer-card] button[aria-label='发送'],
+body[data-odette-skin] [data-composer-card] button.odette-send-btn,
+body[data-odette-skin] [data-composer-card] button.uV2eYG_primary {
+  /* 强制正方形（参考大佬）：38×38 真圆形，发送按钮与左侧圆钮尺寸对称 */
+  box-sizing: border-box;
+  width: 38px;
+  min-width: 38px;
+  height: 38px;
+  padding: 0;
+  display: inline-grid;
+  place-items: center;
+  background: radial-gradient(circle at 35% 30%, rgba(127,181,227,0.94), rgba(50,97,174,0.98));
+  color: #fff !important;
+  border: 2px solid #5589C6;
+  /* 冰蓝三层镶嵌结构（参考大佬）：外冰蓝辉光 + 内冰蓝柔光 + 深蓝空气隙（描边与底座的视觉缝）
+     box-shadow 顺序=上到下：外辉光(上层) → 内冰蓝柔光 → 深蓝空气隙(底层紧贴背景) → 外黑投影(最外层空间) */
+  box-shadow:
+    0 0 0 1px rgba(207, 218, 232, 0.32),
+    inset 0 0 5px rgba(85, 137, 198, 0.55),
+    inset 0 0 0 2px rgba(19, 33, 73, 0.92),
+    0 1px 5px rgba(0, 0, 0, 0.35);
+  border-radius: 50%;
+}
+
+/* 浅色主题：三个圆钮（➕/权限/发送）转浅色玻璃——
+   浅蓝白渐变底 + 深藏青图标（#16224e）+ 冰蓝描边保留 + 浅色内嵌辉光（去掉深蓝空气隙）。
+   特异性高于 L244 的通用 button 深字规则与旧 ➕ 白字规则，置于其后按序生效。 */
+body[data-odette-skin]:not([data-ds-dark-theme]) [data-composer-card] [aria-label='命令'],
+body[data-odette-skin]:not([data-ds-dark-theme]) [data-composer-card] button.uV2eYG_add,
+body[data-odette-skin]:not([data-ds-dark-theme]) [data-composer-card] button[aria-label^='访问模式'],
+body[data-odette-skin]:not([data-ds-dark-theme]) [data-composer-card] button.Sh0Q9G_trigger,
+body[data-odette-skin]:not([data-ds-dark-theme]) [data-composer-card] button[aria-haspopup='menu'][aria-label*='访问'],
+body[data-odette-skin]:not([data-ds-dark-theme]) [data-composer-card] button[aria-label*='权限'],
+body[data-odette-skin]:not([data-ds-dark-theme]) [data-composer-card] button.odette-access-btn,
+body[data-odette-skin]:not([data-ds-dark-theme]) [data-composer-card] button[type='submit'],
+body[data-odette-skin]:not([data-ds-dark-theme]) [data-composer-card] button[aria-label='发送'],
+body[data-odette-skin]:not([data-ds-dark-theme]) [data-composer-card] button.odette-send-btn,
+body[data-odette-skin]:not([data-ds-dark-theme]) [data-composer-card] button.uV2eYG_primary {
+  background: radial-gradient(circle at 35% 30%, rgba(255, 255, 255, 0.95), rgba(214, 226, 255, 0.95));
+  color: #16224e !important;
+  border: 2px solid #5589C6;
+  box-shadow:
+    0 0 0 1px rgba(207, 218, 232, 0.8),
+    inset 0 0 5px rgba(85, 137, 198, 0.25),
+    inset 0 0 0 2px rgba(255, 255, 255, 0.7),
+    0 1px 5px rgba(31, 49, 92, 0.18);
+}
+
+/* 推理等级（Effort / Max / Pro / Mini 等）紫心点缀——与大佬信息位分离机制一致
+   · 只给「算力等级」本身紫心点缀，模型名称保持原色（信息位分离：模型名=路线，Effort=算力消耗）
+   · 用「·」作分隔点，与缎带标签的 atelier 风格匹配，不使用生硬的竖线 */
+body[data-odette-skin] [data-composer-card] [class*='triggerEffort'],
+body[data-odette-skin] [data-composer-card] [data-inference-level],
+body[data-odette-skin] [data-composer-card] [class*='inferenceLevel'] {
+  color: #8A62C4 !important;
+  text-shadow: 0 0 5px rgba(183, 139, 214, 0.45);
+  font-weight: 650;
+  font-size: 11px;
+  letter-spacing: 0.3px;
+}
+body[data-odette-skin] [data-composer-card] [class*='triggerEffort']::before,
+body[data-odette-skin] [data-composer-card] [data-inference-level]::before {
+  content: '·';
+  display: inline-block;
+  margin-right: 4px;
+  color: rgba(87, 105, 148, 0.72);
+  text-shadow: none;
+  font-weight: 400;
+}
+/* 深色主题下用浅紫心亮（与深蓝底对比清晰） */
+body[data-odette-skin][data-ds-dark-theme] [data-composer-card] [class*='triggerEffort'],
+body[data-odette-skin][data-ds-dark-theme] [data-composer-card] [data-inference-level] {
+  color: #D0B4EC !important;
+  text-shadow: 0 0 6px rgba(183, 139, 214, 0.6);
+}
+
+/* ========== 极简气泡细冰蓝边（学大佬，只有细冰蓝边+深蓝底，不搞装饰） ==========
+   参考 maid-atelier：用户气泡 userRow > bubble 走 1px 冰蓝边；助手气泡 assistant-step > markdown 走同规格冰蓝边
+   Odette 版仅比大佬多一层「内侧 0.5px 冰蓝白高光」做双描边层次感，背景统一深蓝渐变 */
+
+/* —— 【临时二分实验：嫌疑A排查·2026/8/21】头像：统一冰蓝边三层镶嵌 ——
+   匹配不存在的属性，使规则完全不生效，保留源代码，实验完全局替换回 data-odette-skin 即复原 */
+body[data-odette-skin] [class*='userRow'] [class*='avatar'],
+body[data-odette-skin] [data-chat-flow-kind='assistant-step'] [class*='avatar'] {
+  box-sizing: border-box;
+  width: 44px;
+  height: 44px;
+  min-width: 44px;
+  border-radius: 50%;
+  border: 2px solid #5589C6;
+  box-shadow:
+    0 0 0 0.5px rgba(207, 218, 232, 0.42),
+    0 2px 8px rgba(207, 218, 232, 0.18),
+    inset 0 0 0 3px rgba(19, 33, 73, 0.92);
+  display: inline-grid;
+  place-items: center;
+}
+
+/* —— 【临时二分实验：嫌疑A排查·2026/8/21】用户气泡：默认浅色（浅色模式原生可读），
+       深色由 [data-ds-dark-theme] 条件覆盖为深蓝——与卡片同架构（学 maid），
+       浅色模式下永不深蓝。深色分支仅加深底，边框/描边共享。 —— */
+body[data-odette-skin] [class*='userRow'] [class*='bubble'] {
+  box-sizing: border-box;
+  border-radius: 14px;
+  border: 1.5px solid rgba(85, 137, 198, 0.55);
+  box-shadow:
+    inset 0 0 0 0.5px rgba(207, 218, 232, 0.32),
+    0 2px 10px rgba(0, 0, 0, 0.14);
+  background: linear-gradient(180deg, rgba(233, 239, 253, 0.97), rgba(220, 229, 249, 0.98));
+}
+body[data-odette-skin][data-ds-dark-theme] [class*='userRow'] [class*='bubble'] {
+  background: linear-gradient(180deg, rgba(19, 33, 73, 0.98), rgba(30, 53, 104, 0.99));
+  border-color: rgba(85, 137, 198, 0.75);
+}
+
+/* —— 【临时二分实验：嫌疑A排查·2026/8/21】助手气泡：默认浅色，深色条件覆盖深蓝（同卡片架构） —— */
+body[data-odette-skin]
+  [data-chat-flow-kind='assistant-step'] > * > * > * > div[class*='markdown'] {
+  box-sizing: border-box;
+  align-self: flex-start;
+  width: fit-content;
+  max-width: min(680px, 96%);
+  padding: 14px 18px;
+  border-radius: 16px 16px 16px 6px;
+  border: 1.5px solid rgba(85, 137, 198, 0.5);
+  box-shadow:
+    inset 0 0 0 0.5px rgba(207, 218, 232, 0.3),
+    0 3px 14px rgba(0, 0, 0, 0.12);
+  background: linear-gradient(180deg, rgba(250, 252, 255, 0.97), rgba(240, 244, 253, 0.98));
+}
+body[data-odette-skin][data-ds-dark-theme]
+  [data-chat-flow-kind='assistant-step'] > * > * > * > div[class*='markdown'] {
+  border-color: rgba(85, 137, 198, 0.68);
+  background: linear-gradient(180deg, rgba(19, 33, 73, 0.98), rgba(30, 53, 104, 0.995));
+}
+
+/* —— 【2026-08-25】markdown 表格溢出修复（用户截图：4 列表格超出消息容器右缘出框）——
+   根因：气泡容器（max-width:min(680px,96%)）内的 table 按内容自然宽度渲染（单元格不折行），
+   表格 max-content 宽 > 容器宽时直接溢出容器——容器无 overflow 约束就画出界。
+   标准修法（GitHub 同款）：display:block 强制表格成可滚动块 + max-width:100% + overflow-x:auto；
+   单元格 word-break 兜底让短长值也能折行。 */
+body[data-odette-skin] div[class*='markdown'] table {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  overflow-x: auto;
+  border-collapse: collapse;
+}
+body[data-odette-skin] div[class*='markdown'] table td,
+body[data-odette-skin] div[class*='markdown'] table th {
+  word-break: break-word;
+}
+
+/* ========== 下拉菜单/弹窗样式美化（参考大佬：覆盖 DSH 变量，选中态只靠勾，不高亮文字） ==========
+   覆盖模型选择器、权限选择器等所有从composer区域弹出的菜单/列表框。
+
+   核心思路（改编自 maid-atelier）：
+   1. 在外层容器上覆盖 --dsw-alias-* 变量，交给 DSH 原生样式消费，避免写死 color/background。
+   2. 选中态**只保留勾选图标变色**，文字颜色与未选中保持一致，不做紫色高亮和发光。 */
+
+/* 全局 token 兜底：body 级覆盖 --dsw-alias-bg-layer-3 / --dsw-specific-menu
+   （官方 13 token 不含 layer-3，JS overrideTokens 不覆盖它 → 任何用 layer-3 当背景的
+   原生浮层（如 ➕ 命令菜单的二级面板、无 role 的弹层）会暴露原生深灰 rgb(53,54,56)。
+   这里在 body 作用域统一改皮肤色：深色=实心深蓝 #20315b（同菜单段），浅色=浅蓝。 */
+body[data-odette-skin] {
+  --dsw-alias-bg-layer-3: #20315b !important;
+  --dsw-specific-menu: #20315b !important;
+}
+
+body[data-odette-skin]:not([data-ds-dark-theme]) {
+  --dsw-alias-bg-layer-3: rgba(240, 246, 255, 0.96) !important;
+  --dsw-specific-menu: rgba(240, 246, 255, 0.96) !important;
+}
+
+/* 弹窗外层容器：覆盖 DSH 调色板 token（仿照 maid-atelier 的做法）
+   注意：因为可能和 maid-atelier 皮肤同时激活，这里用"双皮肤属性"提升特异性，
+   并且所有自定义变量都加 !important，确保 Odette 配色盖过 maid-atelier 的金色。 */
+body[data-odette-skin] :is([role='dialog'], [role='menu'], [role='listbox'], [data-radix-popper-content-wrapper] > *),
+body[data-odette-skin][data-dsh-maid-atelier] :is([role='dialog'], [role='menu'], [role='listbox'], [data-radix-popper-content-wrapper] > *),
+body[data-odette-skin][data-ds-dark-theme] :is([role='dialog'], [role='menu'], [role='listbox'], [data-radix-popper-content-wrapper] > *),
+body[data-odette-skin][data-dsh-maid-atelier][data-ds-dark-theme] :is([role='dialog'], [role='menu'], [role='listbox'], [data-radix-popper-content-wrapper] > *) {
+  /* 暗色主题的文字色阶：主/次/辅/注 */
+  color: var(--dsw-alias-label-primary, #e8eef8);
+  --dsw-alias-label-primary: #e8eef8 !important;
+  --dsw-alias-label-primary-bluish: #d5dff3 !important;
+  --dsw-alias-label-secondary: #bdc9e3 !important;
+  --dsw-alias-label-tertiary: #96a6c9 !important;
+  --dsw-alias-label-caption: #7f90b4 !important;
+
+  /* 边框色阶（冰蓝系） */
+  --dsw-alias-border-l1: rgba(85, 137, 198, 0.20) !important;
+  --dsw-alias-border-l2-darkmode-thin: rgba(85, 137, 198, 0.30) !important;
+  --dsw-alias-border-l2: rgba(85, 137, 198, 0.34) !important;
+
+  /* 按钮填充 */
+  --dsw-alias-button-elevated-fill: rgba(28, 44, 84, 0.94) !important;
+  --dsw-alias-button-floating-fill: rgba(31, 49, 92, 0.96) !important;
+  --dsw-alias-button-floating-hover: #354d88 !important;
+
+  /* 背景层变量：完全不透明（alpha=1.0），绝对不能透后面的输入框文字。
+     大佬的弹层是 100% 实心深蓝，不透背景。 */
+  --dsw-alias-bg-layer-1: #121f43 !important;
+  --dsw-alias-bg-layer-2: #182850 !important;
+  --dsw-alias-bg-layer-3: #20315b !important;
+  --dsw-specific-menu: var(--dsw-alias-bg-layer-3) !important;
+  --dsw-specific-selector: #1f315c !important;
+
+  /* 显式填背景：实心深蓝渐变（完全不透明，alpha=1），取消 backdrop-filter（毛玻璃会强制透后面）。
+     参考大佬的思路：只靠颜色渐变，不透后面的任何元素。 */
+  background: linear-gradient(180deg, #182850 0%, #101c3c 100%) !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+
+  /* 交互态：hover 冰蓝淡底，active（选中）用紫心色淡底（和 maid-atelier 的 0.24 透明金底对齐）
+     注意：选中态变的是背景，文字颜色绝对不变，只有勾选图标是紫心色（唯一的强选中信号） */
+  --dsw-alias-interactive-bg-hover: rgba(85, 137, 198, 0.14) !important;
+  --dsw-alias-interactive-bg-hover-solid: #293f78 !important;
+  --dsw-alias-interactive-bg-active: rgba(138, 98, 196, 0.22) !important;
+
+  /* 外层边框与阴影（Odette 冰蓝系） */
+  border-color: rgba(85, 137, 198, 0.66) !important;
+  box-shadow:
+    0 0 0 0.5px rgba(207, 218, 232, 0.2),
+    0 4px 20px rgba(0, 0, 0, 0.5),
+    inset 0 1px rgba(255, 255, 255, 0.08) !important;
+  z-index: 9999 !important;
+}
+
+/* 浅色主题：弹窗外层容器转浅色——文字深藏青、背景浅蓝渐变、全部 --dsw-alias 变量
+   切浅色系（设置面板 role=dialog 与一/二/三级菜单 role=menu/listbox 全部命中）。
+   菜单项文字用 var(--dsw-alias-label-primary)，变量一换全局跟随，无需逐项覆盖。 */
+body[data-odette-skin]:not([data-ds-dark-theme]) :is([role='dialog'], [role='menu'], [role='listbox'], [data-radix-popper-content-wrapper] > *) {
+  color: var(--dsw-alias-label-primary, #16224e);
+  --dsw-alias-label-primary: #16224e !important;
+  --dsw-alias-label-primary-bluish: #243a75 !important;
+  --dsw-alias-label-secondary: #3d4d85 !important;
+  --dsw-alias-label-tertiary: #5a6da3 !important;
+  --dsw-alias-label-caption: #6b7db0 !important;
+
+  --dsw-alias-border-l1: rgba(85, 137, 198, 0.25) !important;
+  --dsw-alias-border-l2-darkmode-thin: rgba(85, 137, 198, 0.38) !important;
+  --dsw-alias-border-l2: rgba(85, 137, 198, 0.42) !important;
+
+  --dsw-alias-button-elevated-fill: rgba(255, 255, 255, 0.9) !important;
+  --dsw-alias-button-floating-fill: rgba(255, 255, 255, 0.92) !important;
+  --dsw-alias-button-floating-hover: #e8eefc !important;
+
+  --dsw-alias-bg-layer-1: #f7f9ff !important;
+  --dsw-alias-bg-layer-2: #eef3ff !important;
+  --dsw-alias-bg-layer-3: rgba(240, 246, 255, 0.98) !important;
+  --dsw-specific-menu: var(--dsw-alias-bg-layer-3) !important;
+  --dsw-specific-selector: #eef2ff !important;
+
+  background: linear-gradient(180deg, #f5f8ff 0%, #e6edfb 100%) !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+
+  --dsw-alias-interactive-bg-hover: rgba(85, 137, 198, 0.12) !important;
+  --dsw-alias-interactive-bg-hover-solid: #dfe7f8 !important;
+  --dsw-alias-interactive-bg-active: rgba(138, 98, 196, 0.14) !important;
+
+  border-color: rgba(85, 137, 198, 0.42) !important;
+  box-shadow:
+    0 0 0 0.5px rgba(85, 137, 198, 0.18),
+    0 4px 20px rgba(31, 49, 92, 0.18),
+    inset 0 1px rgba(255, 255, 255, 0.6) !important;
+  z-index: 9999 !important;
+}
+
+/* composer-card 内嵌面板（非 Portal 出去的菜单）的视觉补足。
+   ⚠ 绝不写 position：DSH 弹层根原生就是 absolute（bottom:calc(100%+Npx) 向上弹出），
+     不需要兜底；且 role=listbox 会命中 PopupSelect 的**内部滚动容器 viewport**
+     （dsh-client-ui-commands 的 viewport 也带 role=listbox）——强制 absolute 会把它
+     脱离 card 的 flex 流 → card 高度塌陷 → useAnchoredMaxHeight 的视口钳制失效
+     （maxHeight = min(cap, rect.bottom - 12)）→ 弹层向上溢出贴视口顶被裁。
+     只保留观感属性（圆角/内边距/backdrop），position 交给原生。 */
+body[data-odette-skin] [data-composer-card] [role='menu'],
+body[data-odette-skin] [data-composer-card] [role='listbox'],
+body[data-odette-skin] [data-composer-card] [class*='DropdownMenuContent'],
+body[data-odette-skin] [data-composer-card] [class*='SelectContent'],
+body[data-odette-skin] [data-composer-card] [class*='PopoverContent'] {
+  border-radius: 16px !important;
+  padding: 6px !important;
+  backdrop-filter: none !important;
+}
+
+/* 门户级 Popover Wrapper 只提 z-index，绝对不碰 position/transform（Radix 自己会算） */
+body[data-odette-skin] [data-radix-popper-content-wrapper] {
+  z-index: 9999 !important;
+}
+/* 门户级菜单/列表框（真正从 body 末尾 Portal 出来的）：圆角/内边距放大一点，完全不透明 */
+body[data-odette-skin] [data-radix-popper-content-wrapper] > [role='menu'],
+body[data-odette-skin] [data-radix-popper-content-wrapper] > [role='listbox'],
+body[data-odette-skin] [data-radix-popper-content-wrapper] > [class*='DropdownMenuContent'],
+body[data-odette-skin] [data-radix-popper-content-wrapper] > [class*='SelectContent'],
+body[data-odette-skin] [data-radix-popper-content-wrapper] > [class*='PopoverContent'],
+body[data-odette-skin] > [role='menu'],
+body[data-odette-skin] > [role='listbox'] {
+  border-radius: 16px !important;
+  padding: 6px !important;
+  backdrop-filter: none !important;
+}
+
+/* 菜单项：只控制尺寸与过渡，绝不覆盖选中/未选中的颜色（交给 --dsw-alias 变量） */
+body[data-odette-skin] [data-composer-card] [role='menuitem'],
+body[data-odette-skin] [data-composer-card] [role='menuitemradio'],
+body[data-odette-skin] [data-composer-card] [role='menuitemcheckbox'],
+body[data-odette-skin] [data-composer-card] [role='option'],
+body[data-odette-skin] [data-composer-card] [class*='DropdownMenuItem'],
+body[data-odette-skin] [data-composer-card] [class*='SelectItem'],
+body[data-odette-skin] [data-composer-card] [class*='_item'],
+body[data-odette-skin] [data-composer-card] [class*='_option'],
+body[data-odette-skin] [data-radix-popper-content-wrapper] [role='menuitem'],
+body[data-odette-skin] [data-radix-popper-content-wrapper] [role='menuitemradio'],
+body[data-odette-skin] [data-radix-popper-content-wrapper] [role='menuitemcheckbox'],
+body[data-odette-skin] [data-radix-popper-content-wrapper] [role='option'],
+body[data-odette-skin] [data-radix-popper-content-wrapper] [class*='DropdownMenuItem'],
+body[data-odette-skin] [data-radix-popper-content-wrapper] [class*='SelectItem'],
+body[data-odette-skin] [data-radix-popper-content-wrapper] [class*='_item'],
+body[data-odette-skin] [data-radix-popper-content-wrapper] [class*='_option'] {
+  border-radius: 10px !important;
+  padding: 6px 16px 6px 8px !important;
+  font-size: 13px !important;
+  line-height: 1.4 !important;
+  transition: background-color .12s ease, color .12s ease !important;
+  cursor: pointer !important;
+  /* 颜色：使用变量，绝不写死，保证选中未选中一致 */
+  color: var(--dsw-alias-label-primary) !important;
+}
+
+/* 菜单项图标 wrapper：maid-atelier 等皮肤会把图标容器设到 56px，导致菜单整体变宽。
+   这里强制压缩成和实际 16px SVG 贴合的 18px，收窄整体菜单宽度。 */
+body[data-odette-skin] [role='menuitem'] [class*='_itemIcon'],
+body[data-odette-skin] [role='menuitem'] [class*='-itemIcon'],
+body[data-odette-skin] [role='menuitemradio'] [class*='_itemIcon'],
+body[data-odette-skin] [role='menuitemradio'] [class*='-itemIcon'],
+body[data-odette-skin] [role='menuitemcheckbox'] [class*='_itemIcon'],
+body[data-odette-skin] [role='menuitemcheckbox'] [class*='-itemIcon'],
+body[data-odette-skin] [role='option'] [class*='_itemIcon'],
+body[data-odette-skin] [role='option'] [class*='-itemIcon'],
+body[data-odette-skin] [class*='DropdownMenuItem'] [class*='_itemIcon'],
+body[data-odette-skin] [class*='DropdownMenuItem'] [class*='-itemIcon'],
+body[data-odette-skin] [class*='SelectItem'] [class*='_itemIcon'],
+body[data-odette-skin] [class*='SelectItem'] [class*='-itemIcon'],
+body[data-odette-skin] [class*='_item'] [class*='_itemIcon'],
+body[data-odette-skin] [class*='_item'] [class*='-itemIcon'],
+body[data-odette-skin] [class*='_option'] [class*='_itemIcon'],
+body[data-odette-skin] [class*='_option'] [class*='-itemIcon'] {
+  width: 18px !important;
+  min-width: 18px !important;
+  height: 18px !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  flex: 0 0 auto !important;
+}
+
+/* hover / 键盘聚焦高亮：只做冰蓝淡底 + 文字提亮，不发紫 */
+body[data-odette-skin] [data-composer-card] [role='menuitem']:hover,
+body[data-odette-skin] [data-composer-card] [role='menuitemradio']:hover,
+body[data-odette-skin] [data-composer-card] [role='menuitemcheckbox']:hover,
+body[data-odette-skin] [data-composer-card] [role='option']:hover,
+body[data-odette-skin] [data-composer-card] [class*='DropdownMenuItem']:hover,
+body[data-odette-skin] [data-composer-card] [class*='SelectItem']:hover,
+body[data-odette-skin] [data-composer-card] [class*='_item']:hover,
+body[data-odette-skin] [data-composer-card] [class*='_option']:hover,
+body[data-odette-skin] [data-composer-card] [role='menuitem'][data-highlighted],
+body[data-odette-skin] [data-composer-card] [role='menuitemradio'][data-highlighted],
+body[data-odette-skin] [data-composer-card] [role='menuitemcheckbox'][data-highlighted],
+body[data-odette-skin] [data-composer-card] [role='option'][data-highlighted],
+body[data-odette-skin] [data-composer-card] [class*='DropdownMenuItem'][data-highlighted],
+body[data-odette-skin] [data-composer-card] [class*='SelectItem'][data-highlighted],
+body[data-odette-skin] [data-composer-card] [class*='_item'][data-highlighted],
+body[data-odette-skin] [data-composer-card] [class*='_option'][data-highlighted],
+body[data-odette-skin] [data-radix-popper-content-wrapper] [role='menuitem']:hover,
+body[data-odette-skin] [data-radix-popper-content-wrapper] [role='menuitemradio']:hover,
+body[data-odette-skin] [data-radix-popper-content-wrapper] [role='menuitemcheckbox']:hover,
+body[data-odette-skin] [data-radix-popper-content-wrapper] [role='option']:hover,
+body[data-odette-skin] [data-radix-popper-content-wrapper] [class*='DropdownMenuItem']:hover,
+body[data-odette-skin] [data-radix-popper-content-wrapper] [class*='SelectItem']:hover,
+body[data-odette-skin] [data-radix-popper-content-wrapper] [class*='_item']:hover,
+body[data-odette-skin] [data-radix-popper-content-wrapper] [class*='_option']:hover,
+body[data-odette-skin] [data-radix-popper-content-wrapper] [role='menuitem'][data-highlighted],
+body[data-odette-skin] [data-radix-popper-content-wrapper] [role='menuitemradio'][data-highlighted],
+body[data-odette-skin] [data-radix-popper-content-wrapper] [role='menuitemcheckbox'][data-highlighted],
+body[data-odette-skin] [data-radix-popper-content-wrapper] [role='option'][data-highlighted],
+body[data-odette-skin] [data-radix-popper-content-wrapper] [class*='DropdownMenuItem'][data-highlighted],
+body[data-odette-skin] [data-radix-popper-content-wrapper] [class*='SelectItem'][data-highlighted],
+body[data-odette-skin] [data-radix-popper-content-wrapper] [class*='_item'][data-highlighted],
+body[data-odette-skin] [data-radix-popper-content-wrapper] [class*='_option'][data-highlighted] {
+  background: var(--dsw-alias-interactive-bg-hover) !important;
+  color: var(--dsw-alias-label-primary) !important;
+}
+
+/* 选中态（重中之重）：绝不改文字颜色和发光，只保留勾选图标（紫心色）作为选中标志 */
+body[data-odette-skin] [data-composer-card] [role='menuitem'][aria-checked='true'],
+body[data-odette-skin] [data-composer-card] [role='menuitemradio'][aria-checked='true'],
+body[data-odette-skin] [data-composer-card] [role='menuitemcheckbox'][aria-checked='true'],
+body[data-odette-skin] [data-composer-card] [role='option'][aria-selected='true'],
+body[data-odette-skin] [data-composer-card] [class*='DropdownMenuItem'][data-state='checked'],
+body[data-odette-skin] [data-composer-card] [class*='SelectItem'][data-state='checked'],
+body[data-odette-skin] [data-composer-card] [class*='_item'][class*='_selected'],
+body[data-odette-skin] [data-composer-card] [class*='_item'][class*='-selected'],
+body[data-odette-skin] [data-composer-card] [class*='_option'][class*='_selected'],
+body[data-odette-skin] [data-composer-card] [class*='_item'][class*='_active'],
+body[data-odette-skin] [data-composer-card] [class*='_option'][class*='_active'],
+body[data-odette-skin] [data-radix-popper-content-wrapper] [role='menuitem'][aria-checked='true'],
+body[data-odette-skin] [data-radix-popper-content-wrapper] [role='menuitemradio'][aria-checked='true'],
+body[data-odette-skin] [data-radix-popper-content-wrapper] [role='menuitemcheckbox'][aria-checked='true'],
+body[data-odette-skin] [data-radix-popper-content-wrapper] [role='option'][aria-selected='true'],
+body[data-odette-skin] [data-radix-popper-content-wrapper] [class*='DropdownMenuItem'][data-state='checked'],
+body[data-odette-skin] [data-radix-popper-content-wrapper] [class*='SelectItem'][data-state='checked'],
+body[data-odette-skin] [data-radix-popper-content-wrapper] [class*='_item'][class*='_selected'],
+body[data-odette-skin] [data-radix-popper-content-wrapper] [class*='_item'][class*='-selected'],
+body[data-odette-skin] [data-radix-popper-content-wrapper] [class*='_option'][class*='_selected'],
+body[data-odette-skin] [data-radix-popper-content-wrapper] [class*='_item'][class*='_active'],
+body[data-odette-skin] [data-radix-popper-content-wrapper] [class*='_option'][class*='_active'] {
+  /* 选中项只加一点点底色（仿大佬极简风格），文字颜色与未选中完全一致 */
+  background: var(--dsw-alias-interactive-bg-active) !important;
+  color: var(--dsw-alias-label-primary) !important; /* 必须和未选中一样，不能紫！ */
+  text-shadow: none !important;
+  font-weight: inherit !important;
+}
+
+/* 分组标题（如模型提供商名 "DeepSeek"） */
+body[data-odette-skin] [data-composer-card] [role='group'] > [role='presentation'],
+body[data-odette-skin] [data-composer-card] [class*='DropdownMenuLabel'],
+body[data-odette-skin] [data-composer-card] [class*='SelectLabel'],
+body[data-odette-skin] [data-composer-card] [class*='groupTitle'],
+body[data-odette-skin] [data-radix-popper-content-wrapper] [class*='DropdownMenuLabel'],
+body[data-odette-skin] [data-radix-popper-content-wrapper] [class*='SelectLabel'],
+body[data-odette-skin] [data-radix-popper-content-wrapper] [role='group'] > label,
+body[data-odette-skin] [data-radix-popper-content-wrapper] [class*='groupTitle'] {
+  color: var(--dsw-alias-label-caption) !important; /* 依赖变量，保持统一 */
+  font-size: 11px !important;
+  font-weight: 600 !important;
+  letter-spacing: 0.5px !important;
+  padding: 6px 12px 4px !important;
+  text-transform: none !important; /* 不用大写，和 DSH 原生一致 */
+}
+
+/* 分隔线 */
+body[data-odette-skin] [data-composer-card] [role='separator'],
+body[data-odette-skin] [data-composer-card] [class*='DropdownMenuSeparator'],
+body[data-odette-skin] [data-composer-card] [class*='SelectSeparator'],
+body[data-odette-skin] [data-radix-popper-content-wrapper] [role='separator'],
+body[data-odette-skin] [data-radix-popper-content-wrapper] [class*='DropdownMenuSeparator'],
+body[data-odette-skin] [data-radix-popper-content-wrapper] [class*='SelectSeparator'] {
+  height: 1px !important;
+  background: var(--dsw-alias-border-l1) !important;
+  margin: 4px 6px !important;
+}
+
+/* 勾选图标：唯一视觉指示"选中"的元素，染成紫心色（Odette 角色色） */
+body[data-odette-skin] [data-composer-card] [role='menuitem'][aria-checked='true'] svg,
+body[data-odette-skin] [data-composer-card] [role='menuitemradio'][aria-checked='true'] svg,
+body[data-odette-skin] [data-composer-card] [role='menuitemcheckbox'][aria-checked='true'] svg,
+body[data-odette-skin] [data-composer-card] [role='option'][aria-selected='true'] svg,
+body[data-odette-skin] [data-composer-card] [class*='ItemIndicator'],
+body[data-odette-skin] [data-composer-card] [class*='ItemIndicator'] svg,
+body[data-odette-skin] [data-composer-card] [class*='_check'],
+body[data-odette-skin] [data-composer-card] [class*='-check'],
+body[data-odette-skin] [data-radix-popper-content-wrapper] [role='menuitem'][aria-checked='true'] svg,
+body[data-odette-skin] [data-radix-popper-content-wrapper] [role='menuitemradio'][aria-checked='true'] svg,
+body[data-odette-skin] [data-radix-popper-content-wrapper] [role='menuitemcheckbox'][aria-checked='true'] svg,
+body[data-odette-skin] [data-radix-popper-content-wrapper] [role='option'][aria-selected='true'] svg,
+body[data-odette-skin] [data-radix-popper-content-wrapper] [class*='ItemIndicator'],
+body[data-odette-skin] [data-radix-popper-content-wrapper] [class*='ItemIndicator'] svg,
+body[data-odette-skin] [data-radix-popper-content-wrapper] [class*='_check'],
+body[data-odette-skin] [data-radix-popper-content-wrapper] [class*='-check'] {
+  color: #7FB4E8 !important; /* 冰蓝色：仅勾选图标变色 */
+}
+
+/* 治本：严格遵循 maid-atelier 大佬皮肤的"零改正常流外边距"原则
+   大佬皮肤（maid-atelier.module.css L1794 [data-composer-card] 选择器）明确做法：
+   只改 padding-top / min-height / 圆角 / 背景 / 阴影，**完全不动 margin-bottom**，
+   让 uV2eYG_card.mb 保留 DSH 原生默认值 12px，使正常流总高度始终满足：
+   scrollBody.scrollHeight − scrollBody.clientHeight ≈ 0（diff 恒=0）。
+
+   为什么之前"改 mb=48/6"必然 bug：
+   · mb=48（旧修法）：Δ=+36 → 正常流被拉长36像素，某一窗口尺寸下 diff 碰巧=0，
+     但只要用户拉窗口高度或切换端口→diff>0（滚到底把输入框拉起，拉漂 bug）。
+   · mb=6（前一轮"紧凑"修法）：Δ=−6 → 正常流被缩短6+像素，用户真实窗口尺寸下
+     diff<0（正常流 < 可视区），sticky 无法拉长正常流 → 底下出现蓝色空白挡。
+   · 窗口尺寸、消息条数、端口(1390/3080)都会改变 clientHeight 值，所以任何固定像素
+     的 mb 改动都会在一部分环境下打破 diff=0 平衡，属于从根上留下隐患的写法。
+   · 唯有零改 mb，依赖原生 sticky footer 对正常流高度的自动平衡，diff 才恒=0，
+     永远不出现底下空 / 拉漂 / 吞统计行 三类 bug。
+
+   紧凑性结论：
+   · 原生 mb(12px) + FJxK 默认 padding-top(4px) = g1=16px
+   · 与大佬皮肤的卡片-统计间距手感完全一致，无需为"再紧4px"去碰外边距。
+
+   【重要：padding-bottom:14px 不能动】data-composer-card（=uV2eYG_card 同一元素）
+   的 padding:28px 16px 14px（L92）是 box-sizing:border-box，pb=14 是
+   "输入框底部圆钮/+按钮抬离蓝宝石吊坠底饰的内部安全距离"，改 0 会导致
+   按钮和底框吊坠碰撞；pb=14 在 border-box 下属于内部 padding，不增加
+   border-box 的 bottom 坐标，所以不是正常流空洞/溢出的来源，无需改动。*/
+
+/* === 钉底策略终局：ZERO-TOUCH 原生布局 ===
+ *
+ * 为什么之前"双保险margin-top:auto"导致两个致命bug？
+ * 1) 新会话空态：wSkVaW_scrollBody 只有 1 个子元素（=composerSeat），
+ *    Native 用居中布局让"探索未至之境 + 输入框"在屏幕正中间，
+ *    页面无法滚动（scrollHeight === clientHeight）。
+ *    无条件 mt:auto 强制把 seat 推到最底部 → 新 bug：空态输入框沉底、
+ *    破坏正常流高度 → 滚轮能滑动页面。
+ * 2) 满态（有消息）：Native 本来就能自己正确钉底，无需我们插手。
+ *    scrollBody 是 flex column，两子元素 = [消息列表 flex:1 min-height:0, seat sticky bottom:0]，
+ *    消息多/窗口矮 → sticky 顶底（不被拉出视口=防拉漂）
+ *    消息少/窗口高 → 消息列表 flex:1 自动填空间 → seat 自然在底（无空挡）
+ *
+ * maid-atelier 大佬皮肤（maid-atelier.module.css 全文件）的明确做法：
+ * · 完全没有对 wSkVaW_scrollBody / 消息容器 / composerSeat 写过任何
+ *   display / flex / min-height / overflow-y / margin-top / margin-bottom 修改
+ * · [data-composer-card] 只改 padding-top / min-height / 圆角 / 背景 / 阴影，
+ *   完全不动 margin-bottom，保留 Native 12px 让 diff 恒=0
+ *
+ * 所以正确策略 = **彻底不写任何修改钉底布局的 CSS**。
+ * 之前出现的"底下空挡 / 拉漂"全是旧版本 build 残留的 mb=48/mt:auto 坏规则
+ * 在 DSH 客户端缓存里造成的，只要部署一次纯视觉版、零布局插手的 build，
+ * 空态居中+不能滚 与 满态贴底+不拉漂 两类问题会同时回到 Native 正确行为。*/
+
+/* ========== hero 空态布局舒展（2026/8/22）：空态需要呼吸感，满态需要紧凑性
+   所有规则仅在 [data-phase='hero'] 生效 → 满态 active 完全不碰，维持打字紧凑。
+   对照 maid-atelier.module.css L1820-L1900 的 hero 态独立布局策略：
+   大佬 hero = 更大圆角(26-34px) + 更大按钮(42px) + 更大行高 + 更大输入框高度 + 宽松padding
+   我方 hero 同步放大所有尺寸，满态保留紧凑的 38px 按钮 / 16px 圆角 / 28ptop / 48row。 */
+
+/* 1. 卡片整体：圆角16→22保持，内边距从上轮(36/20/24)收紧到(30/20/18)，
+   上下各收6px（保留比原生28/14略松2px/4px的呼吸，不回到之前的挤压感） */
+body[data-odette-skin] [data-phase='hero'] [data-composer-card] {
+  border-radius: 22px;
+  padding-top: 30px;
+  padding-left: 20px;
+  padding-right: 20px;
+  padding-bottom: 18px;
+}
+
+/* 2. 输入框行：行高52保持，垂直padding从(4/12/8)收(2/12/4)，上下各压一半，
+   align-items:flex-end保留对齐方式 */
+body[data-odette-skin] [data-phase='hero'] [data-composer-card] > [class*='row'] {
+  min-height: 52px;
+  padding: 2px 12px 4px;
+  align-items: flex-end;
+}
+
+/* 3. 输入框本体高度：上轮clamp(80,10vh,130)压到clamp(76,9.5vh,124)，
+   比上轮矮但比原生clamp(72,9vh,118)略高一点，取中间值避免"从太高到太低"来回晃 */
+body[data-odette-skin] [data-phase='hero'] [data-input-mirror] {
+  min-height: clamp(76px, 9.5vh, 124px);
+}
+
+/* 4. 4 类按钮全部 38→42px（+、权限、模式trigger、发送），
+   仅改尺寸不改视觉颜色，特异性高且不干扰深浅主题变体 */
+body[data-odette-skin] [data-phase='hero'] [data-composer-card] [aria-label='命令'],
+body[data-odette-skin] [data-phase='hero'] [data-composer-card] button.uV2eYG_add,
+body[data-odette-skin] [data-phase='hero'] [data-composer-card] button[aria-haspopup='menu'][aria-label*='访问'],
+body[data-odette-skin] [data-phase='hero'] [data-composer-card] button[aria-label*='权限'],
+body[data-odette-skin] [data-phase='hero'] [data-composer-card] button.odette-access-btn,
+body[data-odette-skin] [data-phase='hero'] [data-composer-card] [class*='modes'] button[class*='trigger'],
+body[data-odette-skin] [data-phase='hero'] [data-composer-card] button[type='submit'],
+body[data-odette-skin] [data-phase='hero'] [data-composer-card] button[aria-label='发送'],
+body[data-odette-skin] [data-phase='hero'] [data-composer-card] button.odette-send-btn {
+  width: 42px;
+  min-width: 42px;
+  height: 42px;
+}
+
+/* 5. 标题「探索未至之境」与输入框之间增加呼吸间隙：
+   Native 无额外 mb，hero 态追加 clamp(16,2vh,32)，与大佬 L1652 mb:24px 策略一致 */
+body[data-odette-skin] [data-phase='hero'] [class*='headline']:has(> [class*='fish']) {
+  margin-bottom: clamp(16px, 2vh, 32px);
+}
+
+/* 5b. Hero 标题替换为 Odette 横条 logo（JS 给 headline 挂 .odette-hero-logo）：
+   子元素（鲸鱼图标/标题文字/预览版徽章）隐藏保位，背景 contain 显示 logo；
+   亮暗切换由 --odette-hero-logo-art 变量驱动（syncBackdrop 按 scheme 换 DARK/LIGHT）。
+   横幅素材比例 2.75:1，显示高度 160px → 宽约 440px（用户红框目标尺寸） */
+body[data-odette-skin] .odette-hero-logo {
+  height: 160px !important;
+  min-height: 160px;
+  position: relative;
+  background: var(--odette-hero-logo-art) center/contain no-repeat;
+}
+body[data-odette-skin] .odette-hero-logo > * {
+  visibility: hidden;
+}
+
+/* ========== composer 相位切换动画（hero↔active 滑动 + input-mirror 高度同步） ==========
+   效果参数与上游 maid-atelier 一致（520ms / cubic-bezier(0.22,0.78,0.2,1)），
+   本实现将「位移轴」与「淡入轴」拆成两个独立动画组合表达（translate3d + 百分比关键帧），
+   关键帧组织、命名与结构均为本皮肤自有写法。
+   效果参考：maid-atelier.module.css L1991-2033（滑动动画）、L1815-1822（input-mirror 高度同步） */
+
+body[data-odette-skin][data-odette-composer-motion='dock'] [data-phase='active'] [data-composer-card] {
+  animation:
+    odette-motion-slide-in 520ms cubic-bezier(0.22, 0.78, 0.2, 1) both,
+    odette-motion-fade-in 520ms linear both;
+}
+
+body[data-odette-skin][data-odette-composer-motion='rise'] [data-phase='hero'] [data-composer-card] {
+  animation:
+    odette-motion-slide-up 520ms cubic-bezier(0.22, 0.78, 0.2, 1) both,
+    odette-motion-fade-in 520ms linear both;
+}
+
+body[data-odette-skin][data-odette-composer-motion] [data-composer-card] {
+  will-change: transform, opacity;
+}
+
+/* 位移轴：dock 从目标位置上方滑落（hero 居中 → active 贴底 视觉连续）；rise 反向 */
+@keyframes odette-motion-slide-in {
+  0% { transform: translate3d(0, clamp(-240px, -26vh, -150px), 0); }
+  100% { transform: translate3d(0, 0, 0); }
+}
+
+@keyframes odette-motion-slide-up {
+  0% { transform: translate3d(0, clamp(150px, 26vh, 240px), 0); }
+  100% { transform: translate3d(0, 0, 0); }
+}
+
+/* 淡入轴：轻微提亮入场，独立于位移轴，可单独微调透明度节奏 */
+@keyframes odette-motion-fade-in {
+  0% { opacity: 0.94; }
+  100% { opacity: 1; }
+}
+
+/* input-mirror 高度同步：hero↔active 相位切换时输入区高度跟随卡片节奏收放——
+   两个相位动画共用同一条 520ms 缓动（与顶饰滑移同曲线族），
+   保证位移与高度在同一时间轴完成，输入区不会先于卡片跳变 */
+body[data-odette-skin] [data-input-mirror] {
+  min-height: 0;
+  transition-property: min-height;
+  transition-duration: 520ms;
+  transition-timing-function: cubic-bezier(0.22, 0.78, 0.2, 1);
+}
+
+body[data-odette-skin] [data-phase='hero'] [data-input-mirror] {
+  min-height: clamp(72px, 9vh, 118px);
+}
+
+/* ========== 工具调用卡片（todo 任务列表 / read / edit 等）——菜单同款冰蓝语言 ==========
+   对齐下拉菜单（role=menu）视觉：冰蓝边框 / 圆角 / 半透明玻璃底 / 紫心点缀。
+   仅视觉不动布局（ZERO-TOUCH）。默认浅色 + [data-ds-dark-theme] 深色分支。 */
+
+/* 行容器：hover 冰蓝淡底（与菜单 menuitem hover 一致） */
+body[data-odette-skin] .ztWv_q_callRow {
+  border-radius: 8px;
+  transition: background-color 150ms ease;
+}
+
+body[data-odette-skin] .ztWv_q_callRow:hover {
+  background: rgba(85, 137, 198, 0.1);
+}
+
+/* 头行：标题冰蓝提亮（同勾选图标 #7FB4E8 家族）、摘要紫心（同菜单紫心 #D0B4EC）、图标冰蓝 */
+body[data-odette-skin] .o3BgMG_title {
+  color: rgba(127, 180, 232, 0.95) !important;
+}
+
+body[data-odette-skin] .o3BgMG_summary {
+  color: rgba(208, 180, 236, 0.9) !important;
+}
+
+body[data-odette-skin] .o3BgMG_leading svg {
+  color: #7FB4E8 !important;
+}
+
+/* 展开内容卡：菜单同款玻璃底 + 冰蓝边框 */
+body[data-odette-skin] .o3BgMG_ioCard {
+  background: rgba(15, 21, 51, 0.82) !important;
+  border: 1px solid rgba(85, 137, 198, 0.45) !important;
+  border-radius: 10px !important;
+  box-shadow:
+    0 4px 18px rgba(8, 14, 38, 0.35),
+    inset 0 0 0 1px rgba(127, 180, 232, 0.06) !important;
+}
+
+/* Inspect 按钮 hover 提亮 */
+body[data-odette-skin] .o3BgMG_inspectButton:hover {
+  background: rgba(30, 44, 96, 0.85) !important;
+  border-color: rgba(127, 180, 232, 0.55) !important;
+  color: rgba(240, 246, 255, 0.95) !important;
+}
+
+/* 浅色模式：内容卡浅色玻璃 + 深字（架构约定：默认浅色，深色挂 data-ds-dark-theme） */
+body[data-odette-skin]:not([data-ds-dark-theme]) .o3BgMG_ioCard {
+  background: rgba(240, 246, 255, 0.92) !important;
+  border-color: rgba(85, 137, 198, 0.4) !important;
+  color: rgb(24, 34, 74) !important;
+  box-shadow:
+    0 4px 18px rgba(40, 60, 120, 0.18),
+    inset 0 0 0 1px rgba(127, 180, 232, 0.15) !important;
+}
+
+body[data-odette-skin]:not([data-ds-dark-theme]) .o3BgMG_row {
+  color: rgb(24, 34, 74) !important;
+}
+
+body[data-odette-skin]:not([data-ds-dark-theme]) .o3BgMG_title {
+  color: rgb(37, 84, 148) !important;
+}
+
+body[data-odette-skin]:not([data-ds-dark-theme]) .o3BgMG_summary {
+  color: rgb(122, 96, 168) !important;
+}
+
+/* ========== Agent 任务面板（lXshSW，todo 进度卡）——菜单同款冰蓝语言 ==========
+   结构：section.lXshSW_root > div.lXshSW_body > button.lXshSW_header
+   （span.lXshSW_lead 图标 + span.lXshSW_title "任务" + span.lXshSW_progress 进度 + chevron）
+   展开：ul.lXshSW_list > li.lXshSW_item（span.lXshSW_glyph 状态图标 + 文本）
+   仅视觉不动布局（ZERO-TOUCH）。默认浅色 + [data-ds-dark-theme] 深色分支。 */
+
+/* 面板容器：深灰 → 深蓝玻璃 + 冰蓝边框（同 ioCard 语言） */
+body[data-odette-skin] .lXshSW_root {
+  background: rgba(15, 21, 51, 0.82) !important;
+  border: 1px solid rgba(85, 137, 198, 0.45) !important;
+  border-radius: 12px !important;
+  box-shadow:
+    0 4px 18px rgba(8, 14, 38, 0.35),
+    inset 0 0 0 1px rgba(127, 180, 232, 0.06) !important;
+}
+
+/* 头行 hover：冰蓝淡底（同菜单 menuitem hover） */
+body[data-odette-skin] .lXshSW_header {
+  border-radius: 8px;
+  transition: background-color 150ms ease;
+}
+
+body[data-odette-skin] .lXshSW_header:hover {
+  background: rgba(85, 137, 198, 0.12);
+}
+
+/* 标题冰蓝、进度紫心、图标冰蓝（同菜单语言：模型名原色 / 状态紫心） */
+body[data-odette-skin] .lXshSW_title {
+  color: rgba(127, 180, 232, 0.95) !important;
+}
+
+body[data-odette-skin] .lXshSW_progress {
+  color: rgba(208, 180, 236, 0.9) !important;
+}
+
+body[data-odette-skin] .lXshSW_lead svg,
+body[data-odette-skin] .lXshSW_chevron svg {
+  color: #7FB4E8 !important;
+}
+
+/* 任务行：hover 冰蓝淡底 + 圆角 */
+body[data-odette-skin] .lXshSW_item {
+  border-radius: 6px;
+  transition: background-color 150ms ease;
+}
+
+body[data-odette-skin] .lXshSW_item:hover {
+  background: rgba(85, 137, 198, 0.1);
+}
+
+/* 浅色模式：面板浅色玻璃 + 深字 */
+body[data-odette-skin]:not([data-ds-dark-theme]) .lXshSW_root {
+  background: rgba(240, 246, 255, 0.92) !important;
+  border-color: rgba(85, 137, 198, 0.4) !important;
+  box-shadow:
+    0 4px 18px rgba(40, 60, 120, 0.18),
+    inset 0 0 0 1px rgba(127, 180, 232, 0.15) !important;
+}
+
+body[data-odette-skin]:not([data-ds-dark-theme]) .lXshSW_title {
+  color: rgb(37, 84, 148) !important;
+}
+
+body[data-odette-skin]:not([data-ds-dark-theme]) .lXshSW_progress {
+  color: rgb(122, 96, 168) !important;
+}
+
+body[data-odette-skin]:not([data-ds-dark-theme]) .lXshSW_item {
+  color: rgb(24, 34, 74) !important;
+}
+
+
+/* ========== 深色模式返工（用户三处反馈 2026/8/22）：新建会话按钮 / 上下文占用环 ==========
+   左边框：左上「新建会话」是 rail/窄栏顶部的图标按钮（hHd-Xa_newSession，
+   BUTTON 36px 高、radius 12px、原生透明底）——深色下透出原生深蓝块，加玻璃层+冰蓝边
+   与菜单/卡片（ioCard、lXshSW 等）同语言。浅色模式原生已适配，不动。 */
+
+body[data-odette-skin][data-ds-dark-theme] .hHd-Xa_newSession {
+  background: rgba(15, 21, 51, 0.82) !important;
+  border: 1px solid rgba(85, 137, 198, 0.45) !important;
+  border-radius: 12px !important;
+  color: #e8eef8 !important;
+  transition: background-color 150ms ease, border-color 150ms ease;
+}
+
+body[data-odette-skin][data-ds-dark-theme] .hHd-Xa_newSession:hover {
+  background: rgba(30, 44, 96, 0.85) !important;
+  border-color: rgba(127, 180, 232, 0.55) !important;
+}
+
+body[data-odette-skin][data-ds-dark-theme] .hHd-Xa_newSession svg {
+  color: #7FB4E8 !important;
+}
+
+/* 上下文占用环（composer 右下，发送按钮旁）：Tier 进度弧原生用 --dsw-alias-label-tertiary
+   （深色下呈淡蓝白）——改为与 Max 标签同源的紫粉 #D0B4EC，底座 border-l3 保持。
+   环仅会话态渲染（headless 探针无法进会话），选择器为源码确认的精确类名，直接生效。 */
+body[data-odette-skin][data-ds-dark-theme] .JObwrW_fill {
+  stroke: #D0B4EC !important;
+}
+
+/* 环面板（点击环展开的上下文明细）：百分比数字与「本轮」统计色的统一改紫粉 */
+body[data-odette-skin][data-ds-dark-theme] .JObwrW_percent {
+  color: #D0B4EC !important;
+}
+
+/* ========== 深度定制（2026-08-23）：奥黛塔素材落位（海报×2 / 套娃浮层 / 文件夹图标） ==========
+   素材：Odette-海报/套娃/羽毛.png（用户游戏内取得已抠图），管线 scripts/make-custom-assets.cjs */
+
+/* —— hero 右下角海报贴纸已移除（2026-08-23 用户：新会话页海报出戏，尤其浅色模式下，先拿掉） —— */
+
+/* 【2026/8/23 已废弃】左侧任务栏「添加工作区」按钮套娃替换方案：用户澄清（图1 红框=工作区
+   列表行的文件夹图标，而非「添加工作区」按钮）后明确"估计效果会很糟糕，还是趁早放弃这个
+   方案"——回退原生文件夹图标，此规则与 --odette-nesting-art 素材一并移除，勿再启用。 */
+
+

@@ -6,3 +6,22 @@ lib/
 .DS_Store
 Thumbs.db
 .npm-cache/
+
+# 素材临时件（构建/校对过程产物，不随源仓库分发）
+assets/_*
+assets/*.BAK*
+assets/*.tmp*
+assets/*.PRE-*
+
+# 历史/实验中间件（当前代码不引用，不入库）
+assets/feather-badge.png
+assets/swan-icon.png
+assets/swan-v5.png
+assets/swan-decoration-new.jpg
+assets/v8-swan-v4-full-transparent.png
+assets/frame-edge-*.png
+assets/frame-full.png
+assets/frame-gem-*.png
+assets/frame-line-*.png
+assets/frame-slice.png
+src/client/swan-meta.generated.BAK*

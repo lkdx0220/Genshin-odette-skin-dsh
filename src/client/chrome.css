@@ -1,0 +1,114 @@
+/* Odette skin — 控件样式（常驻注入：皮肤关闭时开关按钮也要可见可点，故不加 body 作用域） */
+
+/* 皮肤开关按钮（sidebar.footer.action） */
+.odette-toggle {
+  display: inline-flex; align-items: center; gap: 6px;
+  background: transparent; border: none; cursor: pointer;
+  color: var(--dsw-alias-label-secondary);
+  padding: 4px 8px; border-radius: 8px;
+  font-size: 13px; line-height: 1.4; white-space: nowrap;
+  flex: none;
+  transition: color .15s ease, transform .12s ease;
+}
+.odette-toggle:hover { color: var(--dsw-alias-brand-primary); }
+.odette-toggle:active { transform: scale(0.93); }
+.odette-toggle[data-on="1"] { color: var(--dsw-alias-brand-primary); }
+.odette-toggle .odette-snow {
+  font-size: 15px; line-height: 1;
+  opacity: .45; filter: grayscale(.6);
+  transition: opacity .15s ease, filter .15s ease, text-shadow .15s ease;
+}
+.odette-toggle[data-on="1"] .odette-snow {
+  opacity: 1; filter: none;
+  text-shadow: 0 0 8px rgba(157, 184, 255, 0.9);
+}
+.odette-toggle .odette-toggle-label { font-weight: 500; }
+
+/* 侧栏点缀（仅宽态：32px 流内贴纸推到行尾，贴纸=开关入口；窄栏态小兽在浮层，见下） */
+.odette-deco {
+  display: block;
+  object-fit: cover;
+}
+.odette-deco-wide {
+  width: 32px; height: 32px;
+  border-radius: 9px;
+  margin-left: auto;
+  opacity: .96;
+  pointer-events: auto;
+  cursor: pointer;
+  flex: none;
+  box-shadow: 0 3px 10px rgba(12, 18, 64, 0.28);
+  transition: filter .15s ease, opacity .15s ease, transform .12s ease;
+}
+.odette-deco-wide:hover { transform: scale(1.1); }
+.odette-deco-wide[data-on="0"] { filter: grayscale(.72); opacity: .7; }
+
+/* 输入框装饰容器（皮肤关闭时隐藏；开启由 enhance.css 作用域规则启用） */
+.odette-composer-decor { display: none; }
+
+/* 浮层开关组合（JS 直接挂 body；雪花按钮 + 小兽；可自由拖动，位置持久化） */
+.odette-float {
+  position: fixed; left: 6px; bottom: 96px;
+  display: flex; flex-direction: column; align-items: center; gap: 6px;
+  z-index: 21; pointer-events: none;
+  user-select: none; -webkit-user-select: none;
+  touch-action: none; /* 触屏拖动不触发页面滚动 */
+}
+.odette-float > * { pointer-events: auto; }
+/* 用户拖过之后：位置完全由内联 left/top 接管，rail 态 CSS 定位失效（防冲突/防遮挡） */
+.odette-float[data-dragged="1"] { bottom: auto; }
+.odette-float[data-dragging="1"] { cursor: grabbing; }
+.odette-float[data-dragging="1"] .odette-overlay-deco { transform: scale(1.06); }
+/* 窄栏（rail）：水平居中（56px 侧栏下 36px 小兽 → left:10px）+ 上移贴近临时会话图标；
+   双路检测（JS data-rail + CSS 属性选择器兜底） */
+.odette-float[data-rail="1"],
+[data-sidebar-collapsed] .odette-float { bottom: 125px; left: 10px; }
+.odette-float[data-rail="1"] .odette-float-btn,
+[data-sidebar-collapsed] .odette-float-btn { display: none; }
+.odette-float-btn {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 3px 10px; border-radius: 999px;
+  font-size: 12px; line-height: 1.5; white-space: nowrap;
+  background: var(--dsw-alias-bg-layer-2, rgba(30, 36, 74, 0.75));
+  border: 1px solid var(--dsw-alias-border-l1, rgba(150, 165, 255, 0.25));
+  color: var(--dsw-alias-label-secondary);
+  cursor: pointer;
+  box-shadow: 0 3px 10px rgba(12, 18, 64, 0.3);
+  transition: color .15s ease, transform .12s ease, box-shadow .15s ease;
+}
+.odette-float-btn:hover { color: var(--dsw-alias-brand-primary); transform: scale(1.06); }
+.odette-float-btn[data-scheme="dark"] {
+  color: var(--dsw-alias-brand-primary);
+  box-shadow: 0 0 10px rgba(157, 184, 255, 0.65), 0 3px 10px rgba(12, 18, 64, 0.3);
+}
+.odette-float-btn[data-scheme="dark"] .odette-scheme-icon {
+  opacity: 1; filter: none; text-shadow: 0 0 8px rgba(157, 184, 255, 0.9);
+}
+.odette-float-btn[data-scheme="light"] { opacity: .85; }
+
+/* 浮层开关贴纸（皮肤开关入口；开=彩色发光、关=灰度呼吸）
+   素材=奥黛塔海报/黑雪鹄海报（竖版画，0.68-0.71 比例）：宽态 80×113、窄栏（rail）44×62；
+   迷你海报边框=冰蓝细线+辉光，与 hero 海报贴纸同语言 */
+.odette-overlay-deco {
+  display: block;
+  width: 80px; height: 113px;
+  border-radius: 9px;
+  object-fit: cover;
+  cursor: pointer;
+  border: 1px solid rgba(85, 137, 198, 0.6);
+  box-shadow: 0 3px 12px rgba(12, 18, 64, 0.35), 0 0 8px rgba(85, 137, 198, 0.18);
+  transition: filter .15s ease, opacity .15s ease, transform .12s ease, box-shadow .15s ease;
+}
+.odette-float[data-rail="1"] .odette-overlay-deco,
+[data-sidebar-collapsed] .odette-overlay-deco {
+  width: 44px; height: 62px;
+  border-radius: 7px;
+}
+.odette-overlay-deco:hover { transform: scale(1.1); }
+.odette-overlay-deco[data-on="0"] { filter: grayscale(.72); animation: odette-breathe 2.4s ease-in-out infinite; }
+.odette-overlay-deco[data-on="1"] { box-shadow: 0 0 12px rgba(157, 184, 255, 0.8), 0 3px 12px rgba(12, 18, 64, 0.35); }
+@keyframes odette-breathe {
+  0%, 100% { opacity: .5; }
+  50% { opacity: .95; }
+}
+
