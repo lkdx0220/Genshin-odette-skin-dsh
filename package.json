@@ -1,6 +1,6 @@
 {
     "name": "dsh-odette-skin",
-    "version": "0.1.0",
+    "version": "0.1.1",
     "description": "Odette 冰雪梦幻主题：深/浅双模式 UI 美化皮肤（背景图 + 主题 token + 毛玻璃）",
     "type": "module",
     "main": "./lib/index.js",
@@ -41,7 +41,6 @@
     "dsh": {
         "client": {
             "inject": [
-                "@deepseek-ai/dsh-client-runtime",
                 "@deepseek-ai/dsh-client-ui-slots"
             ],
             "platform": "web"

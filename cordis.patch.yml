@@ -2,5 +2,5 @@
 # NOTE: id/name must match the package name and the client.js registration id
 # (__ModuleLoader__.load id) exactly - all three are "dsh-odette-skin".
 - insert:
-    - id: odette-skin
+    - id: dsh-odette-skin
       name: 'dsh-odette-skin'
