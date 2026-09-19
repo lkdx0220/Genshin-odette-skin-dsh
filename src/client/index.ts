@@ -544,13 +544,18 @@ export function apply(ctx: ClientContext): void {
   let headerGhostTimer: any = null
   let headerObserver: any = null
 
+  /* 产品 CSS-module 类名会随版本换哈希：既认旧精确名，也认「以 headerHidden 结尾」的类 */
+  const hasHeaderHidden = (el: any): boolean =>
+    el.classList.contains('wSkVaW_headerHidden')
+    || Array.from<string>(el.classList).some((name) => name.endsWith('headerHidden'))
+
   const refreshHeaderGhost = (): void => {
     if (!headerEl) return
     // header 当前不可见（已加 headerHidden / children 已卸载）时不更新缓存
-    if (headerEl.classList.contains('wSkVaW_headerHidden')) return
+    if (hasHeaderHidden(headerEl)) return
     try {
       const ghost = headerEl.cloneNode(true)
-      ghost.classList.remove('wSkVaW_headerHidden')
+      Array.from<string>(ghost.classList).filter((name) => name.endsWith('headerHidden')).forEach((name) => ghost.classList.remove(name))
       ghost.style.position = 'fixed'
       ghost.style.top = '0'
       ghost.style.left = 'var(--odette-sidebar-width, 0px)'
@@ -574,7 +579,7 @@ export function apply(ctx: ClientContext): void {
   }
 
   const ensureHeaderObserved = (): void => {
-    const h = document.querySelector('.wSkVaW_header')
+    const h = document.querySelector("header[class*='header']:has([data-conversation-header-corner])") ?? document.querySelector('.wSkVaW_header')
     if (h === headerEl) return
     headerEl = h
     if (headerObserver) { headerObserver.disconnect(); headerObserver = null }
@@ -617,10 +622,12 @@ export function apply(ctx: ClientContext): void {
   let footerOutDoneTimer: any = null
 
   const collectFooterItems = (): any[] => {
-    const root = document.querySelector('.uV2eYG_root')
+    const card = document.querySelector('[data-composer-card]') ?? document.querySelector('.uV2eYG_card')
+    if (!card) return []
+    const root = card.parentElement ?? document.querySelector('.uV2eYG_root')
     if (!root) return []
     const children = Array.from(root.children)
-    const cardIdx = children.findIndex((el: any) => el.classList && el.classList.contains('uV2eYG_card'))
+    const cardIdx = children.indexOf(card)
     if (cardIdx < 0) return []
     return children.slice(cardIdx + 1)
   }
@@ -643,7 +650,7 @@ export function apply(ctx: ClientContext): void {
      [data-composer-card]（同一纵轴：左侧与宽度完全一致）。右侧边栏展开/收起时该 rect 实时反映
      内容区宽度——统计行克隆体必须绑这一列，而不是绑缓存时刻的旧 rect。 */
   const measureComposerColumn = (): any => {
-    const root = document.querySelector('.uV2eYG_root')
+    const root = document.querySelector('[data-composer-card]')?.parentElement ?? document.querySelector('.uV2eYG_root')
     const seat = root || document.querySelector('[data-composer-card]')
     if (!seat) return null
     const r = seat.getBoundingClientRect()

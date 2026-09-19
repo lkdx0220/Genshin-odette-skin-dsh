@@ -81,7 +81,8 @@ body[data-odette-skin] .odette-trim-layer[data-trim="workspace"] {
 body[data-odette-skin][data-odette-workspace] .odette-trim-layer[data-trim="landing"] { transform: translateY(-100%); }
 body[data-odette-skin][data-odette-workspace] .odette-trim-layer[data-trim="workspace"] { transform: translateY(0); }
 /* 语义会话标签栏提升到饰边层（z-20）之上：冰蓝边/布料沉在 UI 下方，控件始终可见可点 */
-body[data-odette-skin] header:has([role='tablist']) { position: relative; z-index: 21; }
+body[data-odette-skin] header:has([role='tablist']),
+body[data-odette-skin] header[class*='header']:has([data-conversation-header-corner]) { position: relative; z-index: 21; }
 
 /* 【顶部会话 UI 滑入动画】blank 态（新会话）时 header 为 display:none
    （hideChrome = session.blank && composerPhase==='blank'，dsh-client-ui-conversation L6994-6996），
@@ -89,7 +90,8 @@ body[data-odette-skin] header:has([role='tablist']) { position: relative; z-inde
    因此纯 CSS 即可实现"饰边收起的同时，顶部会话 UI 从屏幕上方滑入"。
    参数与饰边双层切换一致（520ms cubic-bezier(0.4,0,0.2,1)）保持同步观感；
    切换会话（header 持续可见）不会重播。 */
-body[data-odette-skin] .wSkVaW_header:not(.wSkVaW_headerHidden) {
+body[data-odette-skin] .wSkVaW_header:not(.wSkVaW_headerHidden),
+body[data-odette-skin] header[class*='header']:has([data-conversation-header-corner]) {
   animation: odette-header-slide 0.52s cubic-bezier(0.4, 0, 0.2, 1) both;
 }
 @keyframes odette-header-slide {
@@ -406,8 +408,10 @@ body[data-odette-skin]:not([data-ds-dark-theme]) [data-composer-card] button {
    · 三按钮选择器分述，见各段落 */
 
 /* ① 左下＋号（命令）圆形钮——蓝晶底 + 冰蓝边 */
+body[data-odette-skin] [data-composer-card] [aria-label='指令'],
 body[data-odette-skin] [data-composer-card] [aria-label='命令'],
-body[data-odette-skin] [data-composer-card] button.uV2eYG_add {
+body[data-odette-skin] [data-composer-card] button.uV2eYG_add,
+body[data-odette-skin] [data-composer-card] button[class*='add'] {
   /* 强制正方形（参考大佬）：38×38 真圆形，border-radius 50% 不会变成椭圆/扁钮 */
   box-sizing: border-box;
   width: 38px;
@@ -429,8 +433,10 @@ body[data-odette-skin] [data-composer-card] button.uV2eYG_add {
     0 1px 5px rgba(0, 0, 0, 0.35);
   border-radius: 50%;
 }
+body[data-odette-skin] [data-composer-card] [aria-label='指令'] svg,
 body[data-odette-skin] [data-composer-card] [aria-label='命令'] svg,
-body[data-odette-skin] [data-composer-card] button.uV2eYG_add svg {
+body[data-odette-skin] [data-composer-card] button.uV2eYG_add svg,
+body[data-odette-skin] [data-composer-card] button[class*='add'] svg {
   stroke: currentColor;
 }
 
@@ -442,7 +448,8 @@ body[data-odette-skin] [data-composer-card] button[aria-label^='访问模式'],
 body[data-odette-skin] [data-composer-card] button.Sh0Q9G_trigger,
 body[data-odette-skin] [data-composer-card] button[aria-haspopup='menu'][aria-label*='访问'],
 body[data-odette-skin] [data-composer-card] button[aria-label*='权限'],
-body[data-odette-skin] [data-composer-card] button.odette-access-btn {
+body[data-odette-skin] [data-composer-card] button.odette-access-btn,
+body[data-odette-skin] [data-composer-card] [class*='modes'] button[class*='trigger'] {
   /* 强制正方形（参考大佬）：38×38 真圆形 */
   box-sizing: border-box;
   width: 38px;
@@ -467,7 +474,8 @@ body[data-odette-skin] [data-composer-card] button.odette-access-btn {
 /* 权限钮只留盾牌图标：隐藏内嵌英文标签（Sh0Q9G_triggerLabel，如 "Full access"/"Workspace Write"）
    与下拉 chevron——原生是「盾牌+文本+chevron」横排文本钮，被本皮肤强制成 38px 圆形后
    文本叠进圆内（用户反馈"英文得删掉"）。无障碍不丢：aria-label 仍带当前模式。 */
-body[data-odette-skin] [data-composer-card] button.Sh0Q9G_trigger :is(.Sh0Q9G_triggerLabel, .Sh0Q9G_chevron) {
+body[data-odette-skin] [data-composer-card] button.Sh0Q9G_trigger :is(.Sh0Q9G_triggerLabel, .Sh0Q9G_chevron),
+body[data-odette-skin] [data-composer-card] [class*='modes'] button[class*='trigger'] :is([class*='triggerLabel'], [class*='chevron']) {
   display: none !important;
 }
 
@@ -497,7 +505,8 @@ body[data-odette-skin]:not([data-ds-dark-theme]) [data-composer-card] button.dsh
 
 /* 工具钮群（➕/盾牌/图片）：**保持用户习惯位置**（translate(10px,-6px)——
    2026-08-25 曾误判"transform 未生效"误改为 none（用户："你又乱动了这块"），已还原） */
-body[data-odette-skin] [data-composer-card] .uV2eYG_tools {
+body[data-odette-skin] [data-composer-card] .uV2eYG_tools,
+body[data-odette-skin] [data-composer-card] [class*='tools'] {
   transform: translate(10px, -6px);
 }
 /* 发送钮 uV2eYG_primary：以 ➕ 钮为参照镜像对齐（2026-08-25 实测收敛）：
@@ -508,17 +517,23 @@ body[data-odette-skin] [data-composer-card] .uV2eYG_tools {
    · 同高：Y = -6px（= ➕）；38px 同尺寸；上下文统计圈不干预。
    ⚠ 真实类名 = uV2eYG_primary（bundle 实证 type=submit/aria-label=发送 均 0 处）。 */
 body[data-odette-skin] [data-composer-card] button[type='submit'],
+body[data-odette-skin] [data-composer-card] button[aria-label^='发送'],
+body[data-odette-skin] [data-composer-card] button[class*='primary'],
 body[data-odette-skin] [data-composer-card] button[aria-label='发送'],
 body[data-odette-skin] [data-composer-card] button.odette-send-btn,
-body[data-odette-skin] [data-composer-card] button.uV2eYG_primary {
+body[data-odette-skin] [data-composer-card] button.uV2eYG_primary,
+body[data-odette-skin] [data-composer-card] button[class*='primary'] {
   transform: translate(-6px, -6px);
 }
 
 /* ③ 右下发送↑圆形钮——同款冰蓝边（底色略亮蓝区分发送语义）；uV2eYG_primary 命中真实按钮 */
 body[data-odette-skin] [data-composer-card] button[type='submit'],
+body[data-odette-skin] [data-composer-card] button[aria-label^='发送'],
+body[data-odette-skin] [data-composer-card] button[class*='primary'],
 body[data-odette-skin] [data-composer-card] button[aria-label='发送'],
 body[data-odette-skin] [data-composer-card] button.odette-send-btn,
-body[data-odette-skin] [data-composer-card] button.uV2eYG_primary {
+body[data-odette-skin] [data-composer-card] button.uV2eYG_primary,
+body[data-odette-skin] [data-composer-card] button[class*='primary'] {
   /* 强制正方形（参考大佬）：38×38 真圆形，发送按钮与左侧圆钮尺寸对称 */
   box-sizing: border-box;
   width: 38px;
@@ -543,6 +558,7 @@ body[data-odette-skin] [data-composer-card] button.uV2eYG_primary {
 /* 浅色主题：三个圆钮（➕/权限/发送）转浅色玻璃——
    浅蓝白渐变底 + 深藏青图标（#16224e）+ 冰蓝描边保留 + 浅色内嵌辉光（去掉深蓝空气隙）。
    特异性高于 L244 的通用 button 深字规则与旧 ➕ 白字规则，置于其后按序生效。 */
+body[data-odette-skin]:not([data-ds-dark-theme]) [data-composer-card] [aria-label='指令'],
 body[data-odette-skin]:not([data-ds-dark-theme]) [data-composer-card] [aria-label='命令'],
 body[data-odette-skin]:not([data-ds-dark-theme]) [data-composer-card] button.uV2eYG_add,
 body[data-odette-skin]:not([data-ds-dark-theme]) [data-composer-card] button[aria-label^='访问模式'],
@@ -551,9 +567,14 @@ body[data-odette-skin]:not([data-ds-dark-theme]) [data-composer-card] button[ari
 body[data-odette-skin]:not([data-ds-dark-theme]) [data-composer-card] button[aria-label*='权限'],
 body[data-odette-skin]:not([data-ds-dark-theme]) [data-composer-card] button.odette-access-btn,
 body[data-odette-skin]:not([data-ds-dark-theme]) [data-composer-card] button[type='submit'],
+body[data-odette-skin]:not([data-ds-dark-theme]) [data-composer-card] button[aria-label^='发送'],
+body[data-odette-skin]:not([data-ds-dark-theme]) [data-composer-card] button[class*='primary'],
 body[data-odette-skin]:not([data-ds-dark-theme]) [data-composer-card] button[aria-label='发送'],
 body[data-odette-skin]:not([data-ds-dark-theme]) [data-composer-card] button.odette-send-btn,
-body[data-odette-skin]:not([data-ds-dark-theme]) [data-composer-card] button.uV2eYG_primary {
+body[data-odette-skin]:not([data-ds-dark-theme]) [data-composer-card] button.uV2eYG_primary,
+body[data-odette-skin]:not([data-ds-dark-theme]) [data-composer-card] button[class*='add'],
+body[data-odette-skin]:not([data-ds-dark-theme]) [data-composer-card] [class*='modes'] button[class*='trigger'],
+body[data-odette-skin]:not([data-ds-dark-theme]) [data-composer-card] button[class*='primary'] {
   background: radial-gradient(circle at 35% 30%, rgba(255, 255, 255, 0.95), rgba(214, 226, 255, 0.95));
   color: #16224e !important;
   border: 2px solid #5589C6;
@@ -1073,6 +1094,7 @@ body[data-odette-skin] [data-phase='hero'] [data-input-mirror] {
 
 /* 4. 4 类按钮全部 38→42px（+、权限、模式trigger、发送），
    仅改尺寸不改视觉颜色，特异性高且不干扰深浅主题变体 */
+body[data-odette-skin] [data-phase='hero'] [data-composer-card] [aria-label='指令'],
 body[data-odette-skin] [data-phase='hero'] [data-composer-card] [aria-label='命令'],
 body[data-odette-skin] [data-phase='hero'] [data-composer-card] button.uV2eYG_add,
 body[data-odette-skin] [data-phase='hero'] [data-composer-card] button[aria-haspopup='menu'][aria-label*='访问'],
@@ -1080,8 +1102,13 @@ body[data-odette-skin] [data-phase='hero'] [data-composer-card] button[aria-labe
 body[data-odette-skin] [data-phase='hero'] [data-composer-card] button.odette-access-btn,
 body[data-odette-skin] [data-phase='hero'] [data-composer-card] [class*='modes'] button[class*='trigger'],
 body[data-odette-skin] [data-phase='hero'] [data-composer-card] button[type='submit'],
+body[data-odette-skin] [data-phase='hero'] [data-composer-card] button[aria-label^='发送'],
+body[data-odette-skin] [data-phase='hero'] [data-composer-card] button[class*='primary'],
 body[data-odette-skin] [data-phase='hero'] [data-composer-card] button[aria-label='发送'],
-body[data-odette-skin] [data-phase='hero'] [data-composer-card] button.odette-send-btn {
+body[data-odette-skin] [data-phase='hero'] [data-composer-card] button.odette-send-btn,
+body[data-odette-skin] [data-phase='hero'] [data-composer-card] button[class*='add'],
+body[data-odette-skin] [data-phase='hero'] [data-composer-card] [class*='modes'] button[class*='trigger'],
+body[data-odette-skin] [data-phase='hero'] [data-composer-card] button[class*='primary'] {
   width: 42px;
   min-width: 42px;
   height: 42px;
@@ -1165,30 +1192,36 @@ body[data-odette-skin] [data-phase='hero'] [data-input-mirror] {
    仅视觉不动布局（ZERO-TOUCH）。默认浅色 + [data-ds-dark-theme] 深色分支。 */
 
 /* 行容器：hover 冰蓝淡底（与菜单 menuitem hover 一致） */
-body[data-odette-skin] .ztWv_q_callRow {
+body[data-odette-skin] .ztWv_q_callRow,
+body[data-odette-skin] [class*='callRow'] {
   border-radius: 8px;
   transition: background-color 150ms ease;
 }
 
-body[data-odette-skin] .ztWv_q_callRow:hover {
+body[data-odette-skin] .ztWv_q_callRow:hover,
+body[data-odette-skin] [class*='callRow']:hover {
   background: rgba(85, 137, 198, 0.1);
 }
 
 /* 头行：标题冰蓝提亮（同勾选图标 #7FB4E8 家族）、摘要紫心（同菜单紫心 #D0B4EC）、图标冰蓝 */
-body[data-odette-skin] .o3BgMG_title {
+body[data-odette-skin] .o3BgMG_title,
+body[data-odette-skin] [data-tool] [class*='title'] {
   color: rgba(127, 180, 232, 0.95) !important;
 }
 
-body[data-odette-skin] .o3BgMG_summary {
+body[data-odette-skin] .o3BgMG_summary,
+body[data-odette-skin] [data-tool] [class*='summary'] {
   color: rgba(208, 180, 236, 0.9) !important;
 }
 
-body[data-odette-skin] .o3BgMG_leading svg {
+body[data-odette-skin] .o3BgMG_leading svg,
+body[data-odette-skin] [data-tool] [class*='leading'] svg {
   color: #7FB4E8 !important;
 }
 
 /* 展开内容卡：菜单同款玻璃底 + 冰蓝边框 */
-body[data-odette-skin] .o3BgMG_ioCard {
+body[data-odette-skin] .o3BgMG_ioCard,
+body[data-odette-skin] [data-tool] [class*='ioCard'] {
   background: rgba(15, 21, 51, 0.82) !important;
   border: 1px solid rgba(85, 137, 198, 0.45) !important;
   border-radius: 10px !important;
@@ -1198,14 +1231,16 @@ body[data-odette-skin] .o3BgMG_ioCard {
 }
 
 /* Inspect 按钮 hover 提亮 */
-body[data-odette-skin] .o3BgMG_inspectButton:hover {
+body[data-odette-skin] .o3BgMG_inspectButton:hover,
+body[data-odette-skin] [data-tool] [class*='inspectButton']:hover {
   background: rgba(30, 44, 96, 0.85) !important;
   border-color: rgba(127, 180, 232, 0.55) !important;
   color: rgba(240, 246, 255, 0.95) !important;
 }
 
 /* 浅色模式：内容卡浅色玻璃 + 深字（架构约定：默认浅色，深色挂 data-ds-dark-theme） */
-body[data-odette-skin]:not([data-ds-dark-theme]) .o3BgMG_ioCard {
+body[data-odette-skin]:not([data-ds-dark-theme]) .o3BgMG_ioCard,
+body[data-odette-skin]:not([data-ds-dark-theme]) [data-tool] [class*='ioCard'] {
   background: rgba(240, 246, 255, 0.92) !important;
   border-color: rgba(85, 137, 198, 0.4) !important;
   color: rgb(24, 34, 74) !important;
@@ -1214,15 +1249,18 @@ body[data-odette-skin]:not([data-ds-dark-theme]) .o3BgMG_ioCard {
     inset 0 0 0 1px rgba(127, 180, 232, 0.15) !important;
 }
 
-body[data-odette-skin]:not([data-ds-dark-theme]) .o3BgMG_row {
+body[data-odette-skin]:not([data-ds-dark-theme]) .o3BgMG_row,
+body[data-odette-skin]:not([data-ds-dark-theme]) [data-tool] [class*='row'] {
   color: rgb(24, 34, 74) !important;
 }
 
-body[data-odette-skin]:not([data-ds-dark-theme]) .o3BgMG_title {
+body[data-odette-skin]:not([data-ds-dark-theme]) .o3BgMG_title,
+body[data-odette-skin]:not([data-ds-dark-theme]) [data-tool] [class*='title'] {
   color: rgb(37, 84, 148) !important;
 }
 
-body[data-odette-skin]:not([data-ds-dark-theme]) .o3BgMG_summary {
+body[data-odette-skin]:not([data-ds-dark-theme]) .o3BgMG_summary,
+body[data-odette-skin]:not([data-ds-dark-theme]) [data-tool] [class*='summary'] {
   color: rgb(122, 96, 168) !important;
 }
 
@@ -1233,7 +1271,8 @@ body[data-odette-skin]:not([data-ds-dark-theme]) .o3BgMG_summary {
    仅视觉不动布局（ZERO-TOUCH）。默认浅色 + [data-ds-dark-theme] 深色分支。 */
 
 /* 面板容器：深灰 → 深蓝玻璃 + 冰蓝边框（同 ioCard 语言） */
-body[data-odette-skin] .lXshSW_root {
+body[data-odette-skin] .lXshSW_root,
+body[data-odette-skin] [data-testid='todo-panel'] {
   background: rgba(15, 21, 51, 0.82) !important;
   border: 1px solid rgba(85, 137, 198, 0.45) !important;
   border-radius: 12px !important;
@@ -1243,41 +1282,49 @@ body[data-odette-skin] .lXshSW_root {
 }
 
 /* 头行 hover：冰蓝淡底（同菜单 menuitem hover） */
-body[data-odette-skin] .lXshSW_header {
+body[data-odette-skin] .lXshSW_header,
+body[data-odette-skin] [data-testid='todo-panel'] [class*='header'] {
   border-radius: 8px;
   transition: background-color 150ms ease;
 }
 
-body[data-odette-skin] .lXshSW_header:hover {
+body[data-odette-skin] .lXshSW_header:hover,
+body[data-odette-skin] [data-testid='todo-panel'] [class*='header']:hover {
   background: rgba(85, 137, 198, 0.12);
 }
 
 /* 标题冰蓝、进度紫心、图标冰蓝（同菜单语言：模型名原色 / 状态紫心） */
-body[data-odette-skin] .lXshSW_title {
+body[data-odette-skin] .lXshSW_title,
+body[data-odette-skin] [data-testid='todo-panel'] [class*='title'] {
   color: rgba(127, 180, 232, 0.95) !important;
 }
 
-body[data-odette-skin] .lXshSW_progress {
+body[data-odette-skin] .lXshSW_progress,
+body[data-odette-skin] [data-testid='todo-panel'] [class*='progress'] {
   color: rgba(208, 180, 236, 0.9) !important;
 }
 
 body[data-odette-skin] .lXshSW_lead svg,
-body[data-odette-skin] .lXshSW_chevron svg {
+body[data-odette-skin] .lXshSW_chevron svg,
+body[data-odette-skin] [data-testid='todo-panel'] :is([class*='lead'], [class*='chevron']) svg {
   color: #7FB4E8 !important;
 }
 
 /* 任务行：hover 冰蓝淡底 + 圆角 */
-body[data-odette-skin] .lXshSW_item {
+body[data-odette-skin] .lXshSW_item,
+body[data-odette-skin] [data-testid='todo-panel'] [class*='item'] {
   border-radius: 6px;
   transition: background-color 150ms ease;
 }
 
-body[data-odette-skin] .lXshSW_item:hover {
+body[data-odette-skin] .lXshSW_item:hover,
+body[data-odette-skin] [data-testid='todo-panel'] [class*='item']:hover {
   background: rgba(85, 137, 198, 0.1);
 }
 
 /* 浅色模式：面板浅色玻璃 + 深字 */
-body[data-odette-skin]:not([data-ds-dark-theme]) .lXshSW_root {
+body[data-odette-skin]:not([data-ds-dark-theme]) .lXshSW_root,
+body[data-odette-skin]:not([data-ds-dark-theme]) [data-testid='todo-panel'] {
   background: rgba(240, 246, 255, 0.92) !important;
   border-color: rgba(85, 137, 198, 0.4) !important;
   box-shadow:
@@ -1285,15 +1332,18 @@ body[data-odette-skin]:not([data-ds-dark-theme]) .lXshSW_root {
     inset 0 0 0 1px rgba(127, 180, 232, 0.15) !important;
 }
 
-body[data-odette-skin]:not([data-ds-dark-theme]) .lXshSW_title {
+body[data-odette-skin]:not([data-ds-dark-theme]) .lXshSW_title,
+body[data-odette-skin]:not([data-ds-dark-theme]) [data-testid='todo-panel'] [class*='title'] {
   color: rgb(37, 84, 148) !important;
 }
 
-body[data-odette-skin]:not([data-ds-dark-theme]) .lXshSW_progress {
+body[data-odette-skin]:not([data-ds-dark-theme]) .lXshSW_progress,
+body[data-odette-skin]:not([data-ds-dark-theme]) [data-testid='todo-panel'] [class*='progress'] {
   color: rgb(122, 96, 168) !important;
 }
 
-body[data-odette-skin]:not([data-ds-dark-theme]) .lXshSW_item {
+body[data-odette-skin]:not([data-ds-dark-theme]) .lXshSW_item,
+body[data-odette-skin]:not([data-ds-dark-theme]) [data-testid='todo-panel'] [class*='item'] {
   color: rgb(24, 34, 74) !important;
 }
 
@@ -1303,7 +1353,8 @@ body[data-odette-skin]:not([data-ds-dark-theme]) .lXshSW_item {
    BUTTON 36px 高、radius 12px、原生透明底）——深色下透出原生深蓝块，加玻璃层+冰蓝边
    与菜单/卡片（ioCard、lXshSW 等）同语言。浅色模式原生已适配，不动。 */
 
-body[data-odette-skin][data-ds-dark-theme] .hHd-Xa_newSession {
+body[data-odette-skin][data-ds-dark-theme] .hHd-Xa_newSession,
+body[data-odette-skin][data-ds-dark-theme] button[class*='newSession'] {
   background: rgba(15, 21, 51, 0.82) !important;
   border: 1px solid rgba(85, 137, 198, 0.45) !important;
   border-radius: 12px !important;
@@ -1311,24 +1362,28 @@ body[data-odette-skin][data-ds-dark-theme] .hHd-Xa_newSession {
   transition: background-color 150ms ease, border-color 150ms ease;
 }
 
-body[data-odette-skin][data-ds-dark-theme] .hHd-Xa_newSession:hover {
+body[data-odette-skin][data-ds-dark-theme] .hHd-Xa_newSession:hover,
+body[data-odette-skin][data-ds-dark-theme] button[class*='newSession']:hover {
   background: rgba(30, 44, 96, 0.85) !important;
   border-color: rgba(127, 180, 232, 0.55) !important;
 }
 
-body[data-odette-skin][data-ds-dark-theme] .hHd-Xa_newSession svg {
+body[data-odette-skin][data-ds-dark-theme] .hHd-Xa_newSession svg,
+body[data-odette-skin][data-ds-dark-theme] button[class*='newSession'] svg {
   color: #7FB4E8 !important;
 }
 
 /* 上下文占用环（composer 右下，发送按钮旁）：Tier 进度弧原生用 --dsw-alias-label-tertiary
    （深色下呈淡蓝白）——改为与 Max 标签同源的紫粉 #D0B4EC，底座 border-l3 保持。
    环仅会话态渲染（headless 探针无法进会话），选择器为源码确认的精确类名，直接生效。 */
-body[data-odette-skin][data-ds-dark-theme] .JObwrW_fill {
+body[data-odette-skin][data-ds-dark-theme] .JObwrW_fill,
+body[data-odette-skin][data-ds-dark-theme] [data-composer-card] [class*='trailing'] [class*='fill'] {
   stroke: #D0B4EC !important;
 }
 
 /* 环面板（点击环展开的上下文明细）：百分比数字与「本轮」统计色的统一改紫粉 */
-body[data-odette-skin][data-ds-dark-theme] .JObwrW_percent {
+body[data-odette-skin][data-ds-dark-theme] .JObwrW_percent,
+body[data-odette-skin][data-ds-dark-theme] [data-composer-card] [class*='trailing'] [class*='percent'] {
   color: #D0B4EC !important;
 }
 
@@ -1340,5 +1395,79 @@ body[data-odette-skin][data-ds-dark-theme] .JObwrW_percent {
 /* 【2026/8/23 已废弃】左侧任务栏「添加工作区」按钮套娃替换方案：用户澄清（图1 红框=工作区
    列表行的文件夹图标，而非「添加工作区」按钮）后明确"估计效果会很糟糕，还是趁早放弃这个
    方案"——回退原生文件夹图标，此规则与 --odette-nesting-art 素材一并移除，勿再启用。 */
+
+/* ========== 会话操作工具条（第三方插件 dsh-session-manager 注入
+   conversation.session.header.actions 槽，类名 sm-*，朴素全局名无哈希）==========
+   插件自带样式走产品 token（--dsw-alias-fill-l2 / border-l2 / state-error-*），在本皮肤下
+   是一排灰蓝方块 + 粉色危险钮，与冰蓝玻璃语言不统一。此处只覆盖视觉，不动插件的结构、
+   尺寸与交互逻辑（min-height/padding/font-size/border-radius 一律沿用插件值）。
+   作用域锚点 [data-slot='conversation.session.header.actions'] 由槽渲染器输出
+   （dsh-client-ui-renderer 的 SlotOutlet：<div data-slot={slotKey} style="display:contents">），
+   是产品稳定契约，不随版本换哈希。
+   危险钮只改常态配色；插件的红色 hover 用 !important 自带，保留其警示语义不与其对抗。 */
+
+/* 深色（默认）：深蓝玻璃底 + 冰蓝描边 */
+body[data-odette-skin] [data-slot='conversation.session.header.actions'] .sm-headerBtn {
+  background: rgba(15, 21, 51, 0.72);
+  border: 1px solid rgba(85, 137, 198, 0.5);
+  color: #cfdae8;
+  transition: background-color 150ms ease, border-color 150ms ease, color 150ms ease;
+}
+
+body[data-odette-skin] [data-slot='conversation.session.header.actions'] .sm-headerBtn:hover:not(:disabled),
+body[data-odette-skin] [data-slot='conversation.session.header.actions'] .sm-headerBtn:focus-visible {
+  background: rgba(30, 44, 96, 0.85);
+  border-color: rgba(127, 180, 232, 0.75);
+  color: #eef4ff;
+}
+
+/* 激活态（☆/🕐/标签/移动/删除 展开时）：冰蓝填充 */
+body[data-odette-skin] [data-slot='conversation.session.header.actions'] .sm-headerBtnActive {
+  background: rgba(85, 137, 198, 0.28);
+  border-color: #5589C6;
+  color: #eaf2ff;
+}
+
+/* 危险钮（删除会话）：保留红语义，底色降为淡红玻璃，不再是一整块实红 */
+body[data-odette-skin] [data-slot='conversation.session.header.actions'] .sm-headerBtnDanger {
+  background: rgba(217, 45, 32, 0.14);
+  border-color: rgba(217, 45, 32, 0.55);
+  color: #f08a93;
+}
+
+/* 忙碌提示文字（插件 .sm-busy）跟随皮肤次级字色 */
+body[data-odette-skin] [data-slot='conversation.session.header.actions'] .sm-busy {
+  color: #96a6c9;
+}
+
+/* 浅色主题：浅色玻璃 + 深藏青字（与 ioCard / 任务面板浅色分支同语言） */
+body[data-odette-skin]:not([data-ds-dark-theme]) [data-slot='conversation.session.header.actions'] .sm-headerBtn {
+  background: rgba(240, 246, 255, 0.92);
+  border-color: rgba(85, 137, 198, 0.4);
+  color: rgb(24, 34, 74);
+}
+
+body[data-odette-skin]:not([data-ds-dark-theme]) [data-slot='conversation.session.header.actions'] .sm-headerBtn:hover:not(:disabled),
+body[data-odette-skin]:not([data-ds-dark-theme]) [data-slot='conversation.session.header.actions'] .sm-headerBtn:focus-visible {
+  background: rgba(255, 255, 255, 0.98);
+  border-color: rgba(85, 137, 198, 0.7);
+  color: #16224e;
+}
+
+body[data-odette-skin]:not([data-ds-dark-theme]) [data-slot='conversation.session.header.actions'] .sm-headerBtnActive {
+  background: rgba(85, 137, 198, 0.2);
+  border-color: #5589C6;
+  color: #16224e;
+}
+
+body[data-odette-skin]:not([data-ds-dark-theme]) [data-slot='conversation.session.header.actions'] .sm-headerBtnDanger {
+  background: rgba(217, 45, 32, 0.1);
+  border-color: rgba(217, 45, 32, 0.5);
+  color: #c02a21;
+}
+
+body[data-odette-skin]:not([data-ds-dark-theme]) [data-slot='conversation.session.header.actions'] .sm-busy {
+  color: #59698c;
+}
 
 
