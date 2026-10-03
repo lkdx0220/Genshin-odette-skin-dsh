@@ -45,7 +45,11 @@ body[data-odette-skin] .odette-trim {
   right: 0;
   bottom: auto;
   left: 0;
-  height: 76px;
+  /* 高度 = header 底边实测值（--odette-header-bottom，由 client JS 发布）：
+     社区版 header 贴视口顶端，底边即 76px；官方桌面端 header 上方还有壳层区域
+     （实测 header 从 y≈41 起、底边 y≈117），写死 76px 会让底部淡线横切在标题行中间。
+     未发布变量时回落设计默认值 76px（新会话页 header 为 display:none，此时正该如此）。 */
+  height: var(--odette-header-bottom, 76px);
   z-index: 20;
   overflow: hidden;
   pointer-events: none;
@@ -72,7 +76,9 @@ body[data-odette-skin] .odette-trim-layer[data-trim="landing"] {
 /* 会话态边框 = 纯 CSS 原神风冰蓝线条（无需素材）：
    顶部 2.5px 冰蓝亮主线（不透明）+ 14px 辉光渐隐；底部 1.5px 冰蓝淡细线 */
 body[data-odette-skin] .odette-trim-layer[data-trim="workspace"] {
-  height: 76px;
+  /* 撑满容器：容器高度已由 JS 对齐到 header 底边，此层再取 100%，
+     底部那条 1.5px 淡线才会压在 header 真正的 border-bottom 上（社区/官方两端一致） */
+  height: 100%;
   background:
     linear-gradient(to bottom, rgba(207, 218, 232, 1), rgba(207, 218, 232, 1) 2.5px, rgba(207, 218, 232, 0.5) 2.5px, rgba(207, 218, 232, 0) 14px),
     linear-gradient(to top, rgba(85, 137, 198, 0.65), rgba(85, 137, 198, 0.65) 1.5px, rgba(85, 137, 198, 0) 1.5px);

@@ -549,17 +549,51 @@ export function apply(ctx: ClientContext): void {
     el.classList.contains('wSkVaW_headerHidden')
     || Array.from<string>(el.classList).some((name) => name.endsWith('headerHidden'))
 
+  /* ---- header 底边实测 → --odette-header-bottom ----
+     顶部饰边容器 .odette-trim 的高度必须等于「header 底边在屏幕上的位置」：
+     社区版 header 贴视口顶端，底边 76px；官方桌面端 header 上方还有壳层区域
+     （实测 header 顶 y≈41、底边 y≈117），写死 76px 会让饰边那条淡线横切在标题行中间。
+     故一律实测。header 缺失/处于 headerHidden（新会话页 header 为 display:none）时清空变量，
+     CSS 回落设计默认值 76px（此时正是新会话页该有的样子）。
+     变量写在 documentElement 上：body 子树观察器不会因 html 的 style 变化回灌触发。 */
+  const HEADER_BOTTOM_PROP = '--odette-header-bottom'
+  const clearHeaderMetrics = (): void => {
+    document.documentElement.style.removeProperty(HEADER_BOTTOM_PROP)
+  }
+  const syncHeaderMetrics = (): void => {
+    const el = headerEl
+    if (!el || !el.isConnected || hasHeaderHidden(el)) { clearHeaderMetrics(); return }
+    const rect = el.getBoundingClientRect()
+    if (rect.height <= 0 || rect.width <= 0) { clearHeaderMetrics(); return }
+    document.documentElement.style.setProperty(HEADER_BOTTOM_PROP, Math.round(rect.bottom * 100) / 100 + 'px')
+  }
+  /* body 级 DOM 变化很频繁（流式渲染等），测量单独防抖，不与克隆体重建互相牵连 */
+  let headerMetricTimer: any = null
+  const scheduleHeaderMetrics = (): void => {
+    if (headerMetricTimer !== null) return
+    headerMetricTimer = setTimeout(() => {
+      headerMetricTimer = null
+      syncHeaderMetrics()
+    }, 150)
+  }
+
   const refreshHeaderGhost = (): void => {
+    syncHeaderMetrics()
     if (!headerEl) return
     // header 当前不可见（已加 headerHidden / children 已卸载）时不更新缓存
     if (hasHeaderHidden(headerEl)) return
     try {
       const ghost = headerEl.cloneNode(true)
       Array.from<string>(ghost.classList).filter((name) => name.endsWith('headerHidden')).forEach((name) => ghost.classList.remove(name))
+      // 位置在克隆当刻冻结成数值（不能引用 CSS 变量：切到新会话页时变量会被清空，
+      // 克隆体会在滑出动画中途跳到视口顶端）
+      const rect = headerEl.getBoundingClientRect()
+      const px = (n: number): string => Math.round(n * 100) / 100 + 'px'
       ghost.style.position = 'fixed'
-      ghost.style.top = '0'
-      ghost.style.left = 'var(--odette-sidebar-width, 0px)'
-      ghost.style.right = '0'
+      ghost.style.top = px(rect.top)
+      ghost.style.left = px(rect.left)
+      ghost.style.right = 'auto'
+      ghost.style.width = px(rect.width)
       ghost.style.zIndex = '21'
       ghost.style.visibility = 'hidden'
       ghost.style.pointerEvents = 'none'
@@ -583,7 +617,8 @@ export function apply(ctx: ClientContext): void {
     if (h === headerEl) return
     headerEl = h
     if (headerObserver) { headerObserver.disconnect(); headerObserver = null }
-    if (!h) { headerGhostEl = null; return }
+    if (!h) { headerGhostEl = null; clearHeaderMetrics(); return }
+    syncHeaderMetrics()
     headerObserver = new MutationObserver(scheduleHeaderGhostRefresh)
     headerObserver.observe(h, { childList: true, subtree: true, characterData: true, attributes: true })
     scheduleHeaderGhostRefresh()
@@ -861,6 +896,8 @@ export function apply(ctx: ClientContext): void {
     columnWatcher = new ResizeObserver((entries: any[]) => {
       const entry = entries[entries.length - 1]
       if (entry) applySidebarWidth(entry.contentRect.width)
+      // 侧栏宽度变化会同时移动主区左缘 → header 几何需重测
+      syncHeaderMetrics()
     })
   }
   const ensureSidebarObserved = (): void => {
@@ -931,6 +968,7 @@ export function apply(ctx: ClientContext): void {
     syncRail()
     ensureSidebarObserved()
     ensureHeaderObserved()
+    scheduleHeaderMetrics()
     syncFooterGhost()
     ensureHeroLogo()
     ensureOrnaments()
@@ -941,7 +979,7 @@ export function apply(ctx: ClientContext): void {
     childList: true,
     subtree: true,
   })
-  const onWinResize = (): void => ensureSidebarObserved()
+  const onWinResize = (): void => { ensureSidebarObserved(); syncHeaderMetrics() }
   window.addEventListener('resize', onWinResize)
   syncProjectedState()
   syncComposerMotion()
@@ -973,6 +1011,8 @@ export function apply(ctx: ClientContext): void {
     observer.disconnect()
     if (headerObserver) { headerObserver.disconnect(); headerObserver = null }
     if (headerGhostTimer !== null) { clearTimeout(headerGhostTimer); headerGhostTimer = null }
+    if (headerMetricTimer !== null) { clearTimeout(headerMetricTimer); headerMetricTimer = null }
+    clearHeaderMetrics()
     if (headerGhostEl) { headerGhostEl.remove(); headerGhostEl = null }
     if (footerGhostTimer !== null) { clearTimeout(footerGhostTimer); footerGhostTimer = null }
     if (footerFollowTimer !== null) { clearInterval(footerFollowTimer); footerFollowTimer = null }
