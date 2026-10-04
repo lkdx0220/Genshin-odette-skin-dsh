@@ -36,7 +36,9 @@ body[data-odette-skin][data-odette-workspace]::after { opacity: 1; }
 
 /* 顶部饰边（参考 deep-whale 双层机制）：
    容器 fixed 全宽 + translate 侧栏宽度 → 只覆盖中间主区，不侵入侧栏；
-   z-index 20 沉于功能性 UI（header 提升 21）之下；pointer-events 全穿透；
+   层级带：饰边 5 < 会话头 6 < 产品浮层容器（BynINW_overlayLayer，position:absolute + z-index:20）。
+   必须压在浮层之下——曾用 20/21，结果会话头（21）盖过浮层（浮层子元素 z 被封顶在 20），
+   把浮层面板顶部的按钮整条挡住并吃掉点击；pointer-events 全穿透；
    两个独立平移层：landing（花边）↔ workspace（冰蓝布料）由 body[data-odette-workspace] 切换，
    520ms 缓动滑入/滑出。 */
 body[data-odette-skin] .odette-trim {
@@ -50,7 +52,7 @@ body[data-odette-skin] .odette-trim {
      （实测 header 从 y≈41 起、底边 y≈117），写死 76px 会让底部淡线横切在标题行中间。
      未发布变量时回落设计默认值 76px（新会话页 header 为 display:none，此时正该如此）。 */
   height: var(--odette-header-bottom, 76px);
-  z-index: 20;
+  z-index: 5;
   overflow: hidden;
   pointer-events: none;
   contain: paint;
@@ -86,9 +88,30 @@ body[data-odette-skin] .odette-trim-layer[data-trim="workspace"] {
 }
 body[data-odette-skin][data-odette-workspace] .odette-trim-layer[data-trim="landing"] { transform: translateY(-100%); }
 body[data-odette-skin][data-odette-workspace] .odette-trim-layer[data-trim="workspace"] { transform: translateY(0); }
-/* 语义会话标签栏提升到饰边层（z-20）之上：冰蓝边/布料沉在 UI 下方，控件始终可见可点 */
+/* 语义会话标签栏提升到饰边层（5）之上、但**必须低于产品浮层容器（20）**：
+   冰蓝边/布料沉在 UI 下方、控件始终可见可点；而浮层面板（如上下文概览、各弹窗，
+   同样挂在浮层容器内、自身 z 被封顶为 20）必须能盖住会话头——否则面板顶部的
+   时间范围/关闭等按钮会被头部整条挡住并吃掉点击。 */
 body[data-odette-skin] header:has([role='tablist']),
-body[data-odette-skin] header[class*='header']:has([data-conversation-header-corner]) { position: relative; z-index: 21; }
+body[data-odette-skin] header[class*='header']:has([data-conversation-header-corner]) { position: relative; z-index: 6; }
+
+/* ========== 浮层内部材质：不透明化 ==========
+   皮肤把全局 token 调成了半透明毛玻璃（--dsw-alias-bg-layer-1/2 = 0.70/0.78 等），
+   浮层面板读起来会被背后内容干扰（用户反馈：希望像设置页那样不透明）。
+   这里**只对浮层容器内部**重定义这几个 token：面板/弹窗随之变为不透明材质，
+   侧栏与对话区的毛玻璃观感不受影响（变量只在此子树内被遮蔽）。 */
+body[data-odette-skin] [class*='overlayLayer'] {
+  --dsw-alias-bg-layer-1: rgba(20, 25, 56, 0.97);
+  --dsw-alias-bg-layer-2: rgba(30, 36, 74, 0.97);
+  --dsw-alias-bg-base: rgba(17, 21, 50, 0.97);
+  --dsw-specific-sidebar-fill: rgba(17, 21, 50, 0.97);
+}
+body[data-odette-skin]:not([data-ds-dark-theme]) [class*='overlayLayer'] {
+  --dsw-alias-bg-layer-1: rgba(247, 250, 255, 0.97);
+  --dsw-alias-bg-layer-2: rgba(255, 255, 255, 0.98);
+  --dsw-alias-bg-base: rgba(243, 247, 255, 0.97);
+  --dsw-specific-sidebar-fill: rgba(243, 247, 255, 0.97);
+}
 
 /* 【顶部会话 UI 滑入动画】blank 态（新会话）时 header 为 display:none
    （hideChrome = session.blank && composerPhase==='blank'，dsh-client-ui-conversation L6994-6996），
@@ -137,8 +160,9 @@ body[data-odette-skin] header[class*='header']:has([data-conversation-header-cor
    输入框列（统计行的最终位置=内容区底部；不写入 top 是因为 footer 刚挂载时布局还在
    hero↔active 切换中间态，此刻测量到的 rect 高度/位置是错的中部值）。
    克隆体内容自身样式（margin auto / max-width）沿用 */
+/* 层级同样压在浮层（20）之下：曾用 22，会盖住浮层面板底部 */
 .odette-footer-ghost {
-  position: fixed; left: 0; right: 0; bottom: 0; top: auto; z-index: 22;
+  position: fixed; left: 0; right: 0; bottom: 0; top: auto; z-index: 7;
   display: flex; flex-direction: column; align-items: center;
   pointer-events: none; visibility: hidden;
 }
@@ -1475,5 +1499,131 @@ body[data-odette-skin]:not([data-ds-dark-theme]) [data-slot='conversation.sessio
 body[data-odette-skin]:not([data-ds-dark-theme]) [data-slot='conversation.session.header.actions'] .sm-busy {
   color: #59698c;
 }
+
+/* ========== 会话管理面板（dsh-session-manager 的 .sm-panelDialog / .sm-nativeDialog 系列）==========
+   插件面板原本全部走产品 token（--dsw-alias-surface-l1 / border-l2 / fill-l2 / accent-primary），
+   在皮肤下呈现产品默认的灰，与冰蓝玻璃语言不统一（用户反馈："它还是灰的"）。
+   这里只覆盖颜色、底色、边框、阴影与字色；尺寸/布局/交互一律沿用插件值（与上面工具条同一克制原则）。
+   选择器带 .sm-panelDialog/.sm-nativeDialog 容器前缀，是为了压过插件自带的
+   `.sm-panelDialog .sm-rowActions .sm-rowBtn` 这类三级选择器。 */
+body[data-odette-skin] :is(.sm-panelDialog, .sm-nativeDialog, .sm-settingsCard) {
+  background: rgba(16, 21, 48, 0.98);
+  border: 1px solid rgba(85, 137, 198, 0.45);
+  box-shadow: 0 18px 48px rgba(0, 0, 0, 0.55);
+  color: #dbe4f2;
+}
+/* 头/脚/内层背景：插件在 [data-sm-theme=dark|light] 作用域里用
+   `background:#1f1f23!important; background-color:#1f1f23!important; border-color:#3a3a40!important`
+   （3 个类 + !important）压死，故这里必须同样带 !important，且选择器更具体才能赢：
+   :is(.sm-panelDialog,.sm-nativeDialog) + :is(头/脚/体) + body[data-odette-skin] = 3 类 + 1 元素。 */
+body[data-odette-skin] :is(.sm-panelDialog, .sm-nativeDialog) :is(.sm-nativeDialogHeader, .sm-nativeDialogFooter, .sm-nativeDialogBody) {
+  background: rgba(16, 21, 48, 0.98) !important;
+  border-color: rgba(85, 137, 198, 0.28) !important;
+}
+body[data-odette-skin] .sm-bulkDialog :is(.sm-bulkSessionList, .sm-bulkResultList, .sm-bulkProgressBar) {
+  background: rgba(12, 16, 38, 0.9) !important;
+  border-color: rgba(85, 137, 198, 0.28) !important;
+  color: #dbe4f2 !important;
+}
+body[data-odette-skin] .sm-nativeDialogTitle { color: #eaf2ff; }
+
+/* 右上图标钮 / 头部下拉 */
+body[data-odette-skin] :is(.sm-panelHeaderClose, .sm-panelHeaderGithub, .sm-panelHeaderWhale, .sm-panelHeaderSelect) {
+  background: transparent;
+  border-color: rgba(85, 137, 198, 0.35);
+  color: #cfdae8;
+}
+body[data-odette-skin] :is(.sm-panelHeaderClose, .sm-panelHeaderGithub, .sm-panelHeaderWhale, .sm-panelHeaderSelect):hover:not(:disabled) {
+  background: rgba(30, 44, 96, 0.85);
+  border-color: rgba(127, 180, 232, 0.75);
+  color: #eef4ff;
+}
+body[data-odette-skin] .sm-panelHeaderSelect.sm-on {
+  background: rgba(85, 137, 198, 0.28);
+  border-color: #5589C6;
+  color: #eaf2ff;
+}
+
+/* 搜索框 / 下拉选择 */
+body[data-odette-skin] :is(.sm-queryInput, .sm-viewSelect, .sm-resetFilters) {
+  background: rgba(10, 14, 36, 0.72);
+  border: 1px solid rgba(85, 137, 198, 0.35);
+  color: #cfdae8;
+}
+body[data-odette-skin] :is(.sm-queryInput, .sm-viewSelect)::placeholder { color: #7c8bab; }
+body[data-odette-skin] :is(.sm-queryInput, .sm-viewSelect) option { background: #10152f; color: #dbe4f2; }
+
+/* 筛选 chips / 批量操作按钮 */
+body[data-odette-skin] .sm-panelDialog :is(.sm-filterBtn, .sm-bulkBtn) {
+  background: rgba(15, 21, 51, 0.72);
+  border: 1px solid rgba(85, 137, 198, 0.5);
+  color: #cfdae8;
+}
+body[data-odette-skin] .sm-panelDialog :is(.sm-filterBtn, .sm-bulkBtn):hover:not(:disabled) {
+  background: rgba(30, 44, 96, 0.85);
+  border-color: rgba(127, 180, 232, 0.75);
+  color: #eef4ff;
+}
+body[data-odette-skin] .sm-panelDialog .sm-filterBtn.sm-on {
+  background: rgba(85, 137, 198, 0.28);
+  border-color: #5589C6;
+  color: #eaf2ff;
+}
+body[data-odette-skin] .sm-panelDialog .sm-bulkBtnDanger {
+  background: rgba(217, 45, 32, 0.14);
+  border-color: rgba(217, 45, 32, 0.55);
+  color: #f08a93;
+}
+
+/* 会话行与行内操作 */
+body[data-odette-skin] .sm-panelDialog .sm-row { border-color: rgba(85, 137, 198, 0.22); }
+body[data-odette-skin] .sm-panelDialog .sm-row:hover { background: rgba(30, 44, 96, 0.5); }
+body[data-odette-skin] .sm-panelDialog :is(.sm-rowCurrent, .sm-rowBulkSelected) {
+  background: rgba(85, 137, 198, 0.18);
+  border-color: #5589C6;
+}
+body[data-odette-skin] .sm-panelDialog .sm-rowTitle { color: #dbe4f2; }
+body[data-odette-skin] .sm-panelDialog :is(.sm-rowMeta, .sm-resultSummary, .sm-empty, .sm-moveLabel) { color: #96a6c9; }
+body[data-odette-skin] .sm-panelDialog .sm-rowActions .sm-rowBtn { color: #cfdae8; }
+body[data-odette-skin] .sm-panelDialog .sm-rowActions .sm-rowBtn:hover:not(:disabled) {
+  background: rgba(85, 137, 198, 0.28);
+  color: #eef4ff;
+}
+body[data-odette-skin] .sm-panelDialog .sm-rowActions .sm-rowBtnDanger { color: #f08a93; }
+
+/* 浅色主题镜像（沿用头部工具条那组浅色值） */
+body[data-odette-skin]:not([data-ds-dark-theme]) :is(.sm-panelDialog, .sm-nativeDialog, .sm-settingsCard) {
+  background: rgba(247, 250, 255, 0.99);
+  border-color: rgba(85, 137, 198, 0.35);
+  box-shadow: 0 18px 48px rgba(24, 34, 74, 0.18);
+  color: rgb(24, 34, 74);
+}
+body[data-odette-skin]:not([data-ds-dark-theme]) :is(.sm-panelDialog, .sm-nativeDialog) :is(.sm-nativeDialogHeader, .sm-nativeDialogFooter, .sm-nativeDialogBody) {
+  background: rgba(247, 250, 255, 0.99) !important;
+  border-color: rgba(85, 137, 198, 0.22) !important;
+}
+body[data-odette-skin]:not([data-ds-dark-theme]) .sm-bulkDialog :is(.sm-bulkSessionList, .sm-bulkResultList, .sm-bulkProgressBar) {
+  background: rgba(240, 246, 255, 0.92) !important;
+  border-color: rgba(85, 137, 198, 0.22) !important;
+  color: rgb(24, 34, 74) !important;
+}
+body[data-odette-skin]:not([data-ds-dark-theme]) .sm-nativeDialogTitle { color: #16224e; }
+body[data-odette-skin]:not([data-ds-dark-theme]) :is(.sm-panelHeaderClose, .sm-panelHeaderGithub, .sm-panelHeaderWhale, .sm-panelHeaderSelect) { border-color: rgba(85, 137, 198, 0.3); color: #46567c; }
+body[data-odette-skin]:not([data-ds-dark-theme]) :is(.sm-panelHeaderClose, .sm-panelHeaderGithub, .sm-panelHeaderWhale, .sm-panelHeaderSelect):hover:not(:disabled) { background: rgba(85, 137, 198, 0.14); border-color: rgba(85, 137, 198, 0.55); color: #16224e; }
+body[data-odette-skin]:not([data-ds-dark-theme]) .sm-panelHeaderSelect.sm-on { background: rgba(85, 137, 198, 0.2); border-color: #5589C6; color: #16224e; }
+body[data-odette-skin]:not([data-ds-dark-theme]) :is(.sm-queryInput, .sm-viewSelect, .sm-resetFilters) { background: rgba(255, 255, 255, 0.92); border-color: rgba(85, 137, 198, 0.3); color: #16224e; }
+body[data-odette-skin]:not([data-ds-dark-theme]) :is(.sm-queryInput, .sm-viewSelect)::placeholder { color: #7b88a6; }
+body[data-odette-skin]:not([data-ds-dark-theme]) .sm-panelDialog :is(.sm-filterBtn, .sm-bulkBtn) { background: rgba(240, 246, 255, 0.92); border-color: rgba(85, 137, 198, 0.4); color: rgb(24, 34, 74); }
+body[data-odette-skin]:not([data-ds-dark-theme]) .sm-panelDialog :is(.sm-filterBtn, .sm-bulkBtn):hover:not(:disabled) { background: rgba(255, 255, 255, 0.98); border-color: rgba(85, 137, 198, 0.7); color: #16224e; }
+body[data-odette-skin]:not([data-ds-dark-theme]) .sm-panelDialog .sm-filterBtn.sm-on { background: rgba(85, 137, 198, 0.2); border-color: #5589C6; color: #16224e; }
+body[data-odette-skin]:not([data-ds-dark-theme]) .sm-panelDialog .sm-bulkBtnDanger { background: rgba(217, 45, 32, 0.1); border-color: rgba(217, 45, 32, 0.5); color: #c02a21; }
+body[data-odette-skin]:not([data-ds-dark-theme]) .sm-panelDialog .sm-row { border-color: rgba(85, 137, 198, 0.18); }
+body[data-odette-skin]:not([data-ds-dark-theme]) .sm-panelDialog .sm-row:hover { background: rgba(85, 137, 198, 0.1); }
+body[data-odette-skin]:not([data-ds-dark-theme]) .sm-panelDialog :is(.sm-rowCurrent, .sm-rowBulkSelected) { background: rgba(85, 137, 198, 0.14); border-color: #5589C6; }
+body[data-odette-skin]:not([data-ds-dark-theme]) .sm-panelDialog .sm-rowTitle { color: rgb(24, 34, 74); }
+body[data-odette-skin]:not([data-ds-dark-theme]) .sm-panelDialog :is(.sm-rowMeta, .sm-resultSummary, .sm-empty, .sm-moveLabel) { color: #59698c; }
+body[data-odette-skin]:not([data-ds-dark-theme]) .sm-panelDialog .sm-rowActions .sm-rowBtn { color: #46567c; }
+body[data-odette-skin]:not([data-ds-dark-theme]) .sm-panelDialog .sm-rowActions .sm-rowBtn:hover:not(:disabled) { background: rgba(85, 137, 198, 0.16); color: #16224e; }
+body[data-odette-skin]:not([data-ds-dark-theme]) .sm-panelDialog .sm-rowActions .sm-rowBtnDanger { color: #c02a21; }
 
 

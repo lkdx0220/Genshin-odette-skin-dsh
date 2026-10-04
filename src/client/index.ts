@@ -513,6 +513,7 @@ export function apply(ctx: ClientContext): void {
     calibrateDarkAttribute(snapshot)
     activeScheme = snapshot.active?.colorScheme ?? (resolveDark(snapshot) ? 'dark' : 'light')
     syncBackdrop(activeScheme)
+    syncSmDialogs()
     if (floatRender) floatRender()
   }), 'odette-skin: theme listener')
 
@@ -594,7 +595,7 @@ export function apply(ctx: ClientContext): void {
       ghost.style.left = px(rect.left)
       ghost.style.right = 'auto'
       ghost.style.width = px(rect.width)
-      ghost.style.zIndex = '21'
+      ghost.style.zIndex = '6'
       ghost.style.visibility = 'hidden'
       ghost.style.pointerEvents = 'none'
       ghost.style.margin = '0'
@@ -962,6 +963,33 @@ export function apply(ctx: ClientContext): void {
     ornamentEls = live
   }
 
+  /* ---- 会话管理面板弹窗：插件用 JS 往弹窗本体写内联 !important 主题色 ----
+     实测：style="background: rgb(31,31,35) !important; color: rgb(236,236,236) !important;
+     border-color: rgb(58,58,64) !important"。内联 !important 在层叠中压过任何样式表规则
+     （含带 !important 的），所以纯 CSS 无解——这里由皮肤用「内联 + 更晚写入 + 同级 important」
+     覆盖同样三个属性；面板内其余元素没有内联样式，enhance.css 的常规规则即可生效。
+     写入前比对现值，且 body 观察器的 attributeFilter 不含 style，故不会自我回环；
+     卸载时只移除「仍等于我们写入值」的属性，不碰插件后来重写的值。 */
+  const SM_DIALOG_SELECTOR = '.sm-panelDialog, .sm-nativeDialog, .sm-settingsCard'
+  const SM_DIALOG_PROPS: Array<[string, string, string]> = [
+    ['background', 'rgba(16, 21, 48, 0.98)', 'rgba(247, 250, 255, 0.99)'],
+    ['border-color', 'rgba(85, 137, 198, 0.45)', 'rgba(85, 137, 198, 0.35)'],
+    ['color', '#dbe4f2', 'rgb(24, 34, 74)'],
+  ]
+  const syncSmDialogs = (): void => {
+    let list: Element[] = []
+    try { list = Array.from(document.querySelectorAll(SM_DIALOG_SELECTOR)) } catch { return }
+    const dark = document.body.hasAttribute('data-ds-dark-theme')
+    for (const el of list) {
+      if (!(el instanceof HTMLElement)) continue
+      for (const [prop, darkValue, lightValue] of SM_DIALOG_PROPS) {
+        const value = dark ? darkValue : lightValue
+        if (el.style.getPropertyValue(prop) === value && el.style.getPropertyPriority(prop) === 'important') continue
+        el.style.setProperty(prop, value, 'important')
+      }
+    }
+  }
+
   const observer = new MutationObserver(() => {
     syncProjectedState()
     syncComposerMotion()
@@ -972,6 +1000,7 @@ export function apply(ctx: ClientContext): void {
     syncFooterGhost()
     ensureHeroLogo()
     ensureOrnaments()
+    syncSmDialogs()
   })
   observer.observe(document.body, {
     attributes: true,
@@ -988,6 +1017,7 @@ export function apply(ctx: ClientContext): void {
   syncFooterGhost()
   ensureHeroLogo()
   ensureOrnaments()
+  syncSmDialogs()
 
   /* ---- 首帧：按持久化状态应用皮肤 ---- */
   syncSkin()
@@ -1013,6 +1043,16 @@ export function apply(ctx: ClientContext): void {
     if (headerGhostTimer !== null) { clearTimeout(headerGhostTimer); headerGhostTimer = null }
     if (headerMetricTimer !== null) { clearTimeout(headerMetricTimer); headerMetricTimer = null }
     clearHeaderMetrics()
+    /* 会话管理面板弹窗：只移除仍等于我们写入值的内联属性（插件后来重写的不碰） */
+    try {
+      for (const el of Array.from(document.querySelectorAll(SM_DIALOG_SELECTOR))) {
+        if (!(el instanceof HTMLElement)) continue
+        for (const [prop, darkValue, lightValue] of SM_DIALOG_PROPS) {
+          const cur = el.style.getPropertyValue(prop)
+          if (cur === darkValue || cur === lightValue) el.style.removeProperty(prop)
+        }
+      }
+    } catch { /* 清理失败静默 */ }
     if (headerGhostEl) { headerGhostEl.remove(); headerGhostEl = null }
     if (footerGhostTimer !== null) { clearTimeout(footerGhostTimer); footerGhostTimer = null }
     if (footerFollowTimer !== null) { clearInterval(footerFollowTimer); footerFollowTimer = null }
